@@ -1,0 +1,210 @@
+:root {
+  --bg: #0E0E0E;
+  --text: #ECEBE6;
+  --muted: #6E6E6A;
+  --dim: #2E2E2C;
+  --green: #7FCF95;
+  --amber: #D8AA62;
+  --red: #D9776F;
+  --state: var(--text);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: max(20px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+}
+
+.header {
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+/* ---- Note + Hz ---- */
+.readout {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+}
+
+.note {
+  font-size: clamp(7rem, 38vw, 11rem);
+  font-weight: 300;
+  line-height: 1;
+  color: var(--state);
+  transition: color 0.35s ease, opacity 0.5s ease;
+}
+
+.note.silent {
+  color: var(--dim);
+}
+
+.hz {
+  margin-top: 12px;
+  font-size: 1rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  transition: opacity 0.5s ease;
+}
+
+/* ---- Needle meter ---- */
+.meter {
+  padding: 8px 0 36px;
+}
+
+.meter-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.sym {
+  font-size: 1.3rem;
+  color: var(--muted);
+  width: 1em;
+  text-align: center;
+}
+
+.track {
+  position: relative;
+  flex: 1;
+  height: 44px;
+}
+
+.track::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--dim);
+}
+
+.center-mark {
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  bottom: 10px;
+  width: 1px;
+  background: var(--muted);
+  transform: translateX(-50%);
+}
+
+.needle {
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  background: var(--state);
+  transition: background-color 0.35s ease, opacity 0.5s ease;
+  will-change: transform;
+}
+
+.app.is-silent .needle { opacity: 0.25; background: var(--muted); }
+.app.is-silent .hz,
+.app.is-silent .cents { opacity: 0; }
+
+.cents {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  transition: opacity 0.5s ease;
+}
+
+/* ---- State colors ---- */
+.app.in-tune   { --state: var(--green); }
+.app.near      { --state: var(--amber); }
+.app.far       { --state: var(--red); }
+
+/* ---- Mode row ---- */
+.modes {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.mode {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0;
+  font: inherit;
+  font-size: 1rem;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--dim);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.mode[data-mode="auto"] {
+  flex: 1.8;
+  font-size: 0.9rem;
+}
+
+.mode.active {
+  color: var(--bg);
+  background: var(--green);
+  border-color: var(--green);
+}
+
+/* ---- Start button ---- */
+.start {
+  width: 100%;
+  height: 56px;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--bg);
+  background: var(--text);
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: transform 0.1s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.start:active { transform: scale(0.98); }
+
+.start.listening {
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--dim);
+}
+
+.error {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--red);
+}
