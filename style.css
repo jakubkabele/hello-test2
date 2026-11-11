@@ -364,3 +364,82 @@ button { font: inherit; }
   font-size: 0.9rem;
   color: var(--red);
 }
+
+/* ================= Clean chord check ================= */
+.chips {
+  display: flex;
+  gap: 8px;
+  margin: 0 -24px;
+  padding: 2px 24px 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.chips::-webkit-scrollbar { display: none; }
+
+.chip {
+  flex-shrink: 0;
+  height: 38px;
+  padding: 0 14px;
+  font-size: 0.95rem;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--dim);
+  border-radius: 12px;
+  cursor: pointer;
+}
+.chip-barre { border-style: dashed; }
+.chip.active {
+  color: var(--bg);
+  background: var(--green);
+  border-color: var(--green);
+  border-style: solid;
+}
+
+.cc-name {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 2.6rem;
+  font-weight: 300;
+}
+
+.cc-diagram {
+  display: block;
+  width: 100%;
+  max-width: 250px;
+  margin: 4px auto 0;
+}
+.cc-diagram .fret   { stroke: var(--dim); stroke-width: 1.5; }
+.cc-diagram .nut    { stroke: var(--muted); stroke-width: 4; }
+.cc-diagram .string { stroke: var(--muted); stroke-width: 1.2; transition: stroke 0.2s; }
+.cc-diagram .string.current { stroke: var(--green); stroke-width: 2.5; }
+.cc-diagram .dot    { fill: var(--text); }
+.cc-diagram .open   { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.cc-diagram text    { text-anchor: middle; font-family: inherit; }
+.cc-diagram .mark   { fill: var(--muted); font-size: 18px; }
+.cc-diagram .label  { fill: var(--muted); font-size: 14px; }
+.cc-diagram .label.current { fill: var(--green); }
+.cc-diagram .st     { font-size: 20px; font-weight: 600; }
+.cc-diagram .st-clean { fill: var(--green); }
+.cc-diagram .st-warn  { fill: var(--amber); }
+.cc-diagram .st-muted { fill: var(--red); }
+.cc-diagram .st-skip  { fill: var(--dim); }
+.cc-diagram .st-todo  { fill: var(--dim); }
+.cc-diagram .st-current { fill: none; stroke: var(--green); stroke-width: 2; }
+.cc-diagram .st-current.hearing { fill: var(--green); }
+
+.cc-text {
+  flex: 1;
+  min-height: 96px;
+  padding: 12px 0 16px;
+  text-align: center;
+}
+.cc-prompt {
+  margin: 0;
+  font-size: 1.1rem;
+  line-height: 1.45;
+}
+.cc-sub {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}

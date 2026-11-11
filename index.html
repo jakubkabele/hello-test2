@@ -55,6 +55,19 @@
       </p>
     </section>
 
+    <!-- ========== Clean chord check ========== -->
+    <section class="screen cc" data-screen="clean-check">
+      <div class="chips"></div>
+      <div class="cc-name"></div>
+      <svg class="cc-diagram" viewBox="0 0 240 320" role="img" aria-label="Chord diagram"></svg>
+      <div class="cc-text" aria-live="polite">
+        <p class="cc-prompt"></p>
+        <p class="cc-sub"></p>
+      </div>
+      <button class="start cc-start">Start</button>
+      <p class="error" hidden></p>
+    </section>
+
     <!-- ========== Tuner (v1) ========== -->
     <section class="screen tuner" data-screen="tuner">
       <section class="readout" aria-live="polite">
@@ -90,7 +103,9 @@
   </div>
 
   <script src="store.js"></script>
+  <script src="audio.js"></script>
   <script src="tuner.js"></script>
+  <script src="cleancheck.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

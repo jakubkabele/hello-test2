@@ -6,7 +6,8 @@
 //   #/log               Log
 //   #/songs             Songs           (coming later)
 //   #/today             Today's session (coming later)
-//   #/exercise/<id>     Exercises       (coming later, one per build step)
+//   #/exercise/clean-check  Clean chord check
+//   #/exercise/<id>     Other exercises (coming later, one per build step)
 
 const ROUTES = {
   '':                        { screen: 'home',  title: 'Home' },
@@ -14,7 +15,7 @@ const ROUTES = {
   'log':                     { screen: 'log',   title: 'Log' },
   'songs':                   { screen: 'soon',  title: 'Songs',              soon: 'Add your songs and their chords here — coming in a later step.' },
   'today':                   { screen: 'soon',  title: "Today's session",    soon: 'A guided session built from your log — coming in step 6.' },
-  'exercise/clean-check':    { screen: 'soon',  title: 'Clean chord check',  soon: 'Pluck a chord string by string and see which strings ring clean — coming in step 2.' },
+  'exercise/clean-check':    { screen: 'clean-check', title: 'Clean chord check' },
   'exercise/change-drill':   { screen: 'soon',  title: 'Chord change drill', soon: 'Strum and switch chords on the beat — coming in step 3.' },
   'exercise/find-note':      { screen: 'soon',  title: 'Find the note',      soon: 'Find a note anywhere on the fretboard — coming in step 5.' },
   'exercise/rhythm':         { screen: 'soon',  title: 'Rhythm',             soon: 'Strum with the metronome and check your timing — coming in step 5.' },
@@ -33,8 +34,9 @@ function render() {
   const path = currentPath();
   const route = ROUTES[path] || ROUTES[''];
 
-  // Leaving the tuner always turns the mic off.
+  // Leaving a screen that listens always turns the mic off.
   if (route.screen !== 'tuner') Tuner.stop();
+  if (route.screen !== CleanCheck.screen) CleanCheck.stop();
 
   screens.forEach((s) => (s.hidden = s.dataset.screen !== route.screen));
   titleEl.textContent = route.title;
@@ -43,6 +45,7 @@ function render() {
 
   if (route.screen === 'home') renderHome();
   if (route.screen === 'log') renderLog();
+  if (route.screen === CleanCheck.screen) CleanCheck.show();
   if (route.screen === 'soon') document.getElementById('soon-text').textContent = route.soon;
 
   window.scrollTo(0, 0);

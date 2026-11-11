@@ -1,4 +1,4 @@
-// Tuner (from v1) — guitar tuner using the YIN pitch detection algorithm.
+// Tuner (from v1) — guitar tuner. Pitch detection (YIN) lives in audio.js.
 // Now a module: Tuner.stop() is called when you leave the screen, and a
 // tuning session is saved to the log when you stop listening.
 
@@ -13,8 +13,6 @@ const Tuner = (() => {
     { name: 'E', freq: 329.63 }, // E4
   ];
 
-  const MIN_FREQ = 60;          // lowest pitch we look for (Hz)
-  const MAX_FREQ = 1000;        // highest pitch we look for (Hz)
   const YIN_THRESHOLD = 0.15;   // lower = stricter about what counts as a clear note
   const MIN_RMS = 0.008;        // below this loudness we treat the input as silence
   const IN_TUNE_CENTS = 5;
@@ -36,11 +34,9 @@ const Tuner = (() => {
   const modeButtons = root.querySelectorAll('.mode');
 
   // ---------- State ----------
-  let audioCtx = null;
   let analyser = null;
-  let stream = null;
   let buffer = null;
-  let yinBuf = null;
+  let sampleRate = 48000;
   let running = false;
   let rafId = 0;
 
@@ -75,26 +71,10 @@ const Tuner = (() => {
   async function start() {
     errorEl.hidden = true;
     try {
-      // Audio must be created inside the tap, or phones block it.
-      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') await audioCtx.resume();
-
-      stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          // Phone "voice" processing distorts music, so turn it off.
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-        },
-      });
-
-      const source = audioCtx.createMediaStreamSource(stream);
-      analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 4096;
-      source.connect(analyser);
-
-      buffer = new Float32Array(analyser.fftSize);
-      yinBuf = new Float32Array(Math.ceil(audioCtx.sampleRate / MIN_FREQ) + 2);
+      const mic = await Sound.openMic();
+      analyser = mic.analyser;
+      buffer = mic.buffer;
+      sampleRate = mic.sampleRate;
 
       running = true;
       activeMs = 0;
@@ -114,8 +94,7 @@ const Tuner = (() => {
     const wasRunning = running;
     running = false;
     cancelAnimationFrame(rafId);
-    if (stream) stream.getTracks().forEach((t) => t.stop());
-    stream = null;
+    if (wasRunning) Sound.closeMic();
     analyser = null;
     history = [];
     goodFrames = 0;
@@ -150,7 +129,7 @@ const Tuner = (() => {
     lastFrame = now;
 
     analyser.getFloatTimeDomainData(buffer);
-    const freq = rms(buffer) >= MIN_RMS ? yin(buffer, audioCtx.sampleRate) : null;
+    const freq = Sound.rms(buffer) >= MIN_RMS ? Sound.yin(buffer, sampleRate, YIN_THRESHOLD) : null;
 
     if (freq) {
       goodFrames++;
@@ -209,51 +188,6 @@ const Tuner = (() => {
     root.classList.add('is-silent');
   }
 
-  // ---------- Pitch detection (YIN) ----------
-  // Finds how many samples it takes for the wave to repeat itself.
-  function yin(buf, sampleRate) {
-    const tauMin = Math.floor(sampleRate / MAX_FREQ);
-    const tauMax = Math.min(Math.ceil(sampleRate / MIN_FREQ), yinBuf.length - 1);
-    const W = Math.min(2048, buf.length - tauMax);
-    const d = yinBuf;
-
-    // 1. Difference: how different is the wave from itself shifted by tau samples?
-    d[0] = 1;
-    let runningSum = 0;
-    for (let tau = 1; tau <= tauMax; tau++) {
-      let sum = 0;
-      for (let i = 0; i < W; i++) {
-        const delta = buf[i] - buf[i + tau];
-        sum += delta * delta;
-      }
-      // 2. Normalize so the threshold works at any volume.
-      runningSum += sum;
-      d[tau] = runningSum > 0 ? (sum * tau) / runningSum : 1;
-    }
-
-    // 3. Pick the FIRST shift that matches well (avoids octave mistakes).
-    let tau = -1;
-    for (let t = tauMin; t <= tauMax; t++) {
-      if (d[t] < YIN_THRESHOLD) {
-        while (t + 1 <= tauMax && d[t + 1] < d[t]) t++;
-        tau = t;
-        break;
-      }
-    }
-    if (tau === -1) return null;
-
-    // 4. Refine between samples for sub-sample precision.
-    let better = tau;
-    if (tau > 1 && tau < tauMax) {
-      const a = d[tau - 1], b = d[tau], c = d[tau + 1];
-      const denom = a + c - 2 * b;
-      if (denom !== 0) better = tau + (a - c) / (2 * denom);
-    }
-
-    const freq = sampleRate / better;
-    return freq >= MIN_FREQ && freq <= MAX_FREQ ? freq : null;
-  }
-
   // ---------- Helpers ----------
   function nearestString(freq) {
     let best = 0;
@@ -263,12 +197,6 @@ const Tuner = (() => {
       if (dist < bestDist) { bestDist = dist; best = i; }
     });
     return best;
-  }
-
-  function rms(buf) {
-    let sum = 0;
-    for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
-    return Math.sqrt(sum / buf.length);
   }
 
   function median(arr) {
