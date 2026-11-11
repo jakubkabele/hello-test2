@@ -1,5 +1,6 @@
 :root {
   --bg: #0E0E0E;
+  --surface: #161615;
   --text: #ECEBE6;
   --muted: #6E6E6A;
   --dim: #2E2E2C;
@@ -10,37 +11,202 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 
 html, body {
   margin: 0;
-  height: 100%;
+  min-height: 100%;
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
-  user-select: none;
-  -webkit-user-select: none;
 }
 
-.app {
+a { color: inherit; text-decoration: none; }
+button { font: inherit; }
+
+/* ---------- Shell ---------- */
+.shell {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
   min-height: 100dvh;
   max-width: 480px;
   margin: 0 auto;
-  padding: max(20px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+  padding: max(16px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
 }
 
-.header {
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 40px;
+  margin-bottom: 12px;
+}
+
+.back {
+  width: 40px;
+  height: 40px;
+  margin-left: -12px;
+  padding: 0;
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.title {
   font-size: 0.95rem;
   font-weight: 500;
   letter-spacing: 0.04em;
   color: var(--muted);
 }
 
-/* ---- Note + Hz ---- */
+.screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ---------- Home ---------- */
+.today {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding: 22px 22px;
+  background: var(--surface);
+  border: 1px solid var(--dim);
+  border-radius: 18px;
+}
+
+.today-label {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.today-sub {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.today-play {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding-left: 3px;
+  font-size: 1rem;
+  color: var(--bg);
+  background: var(--green);
+  border-radius: 50%;
+}
+
+.section {
+  margin: 36px 0 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.list a {
+  display: flex;
+  align-items: center;
+  min-height: 54px;
+  font-size: 1.05rem;
+  border-bottom: 1px solid var(--dim);
+}
+
+.list a:active { opacity: 0.6; }
+
+.list-gap { margin-top: 36px; }
+.list-gap a:first-child { border-top: 1px solid var(--dim); }
+
+.chev {
+  margin-left: auto;
+  font-size: 1.4rem;
+  color: var(--muted);
+}
+
+.count {
+  margin-left: 10px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* ---------- Coming soon ---------- */
+.soon {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  text-align: center;
+  padding-bottom: 80px;
+}
+
+.soon-text {
+  max-width: 280px;
+  margin: 0;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.link-btn {
+  padding: 12px 22px;
+  border: 1px solid var(--dim);
+  border-radius: 14px;
+}
+
+/* ---------- Log ---------- */
+.day { margin-bottom: 28px; }
+
+.day-head {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--dim);
+}
+
+.entry {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--dim);
+}
+
+.entry-time {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.empty {
+  margin: 80px 0 0;
+  text-align: center;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* ================= Tuner (v1) ================= */
 .readout {
   flex: 1;
   display: flex;
@@ -58,9 +224,7 @@ html, body {
   transition: color 0.35s ease, opacity 0.5s ease;
 }
 
-.note.silent {
-  color: var(--dim);
-}
+.note.silent { color: var(--dim); }
 
 .hz {
   margin-top: 12px;
@@ -70,10 +234,7 @@ html, body {
   transition: opacity 0.5s ease;
 }
 
-/* ---- Needle meter ---- */
-.meter {
-  padding: 8px 0 36px;
-}
+.meter { padding: 8px 0 36px; }
 
 .meter-row {
   display: flex;
@@ -127,9 +288,9 @@ html, body {
   will-change: transform;
 }
 
-.app.is-silent .needle { opacity: 0.25; background: var(--muted); }
-.app.is-silent .hz,
-.app.is-silent .cents { opacity: 0; }
+.tuner.is-silent .needle { opacity: 0.25; background: var(--muted); }
+.tuner.is-silent .hz,
+.tuner.is-silent .cents { opacity: 0; }
 
 .cents {
   margin-top: 6px;
@@ -140,12 +301,10 @@ html, body {
   transition: opacity 0.5s ease;
 }
 
-/* ---- State colors ---- */
-.app.in-tune   { --state: var(--green); }
-.app.near      { --state: var(--amber); }
-.app.far       { --state: var(--red); }
+.tuner.in-tune { --state: var(--green); }
+.tuner.near    { --state: var(--amber); }
+.tuner.far     { --state: var(--red); }
 
-/* ---- Mode row ---- */
 .modes {
   display: flex;
   justify-content: space-between;
@@ -158,7 +317,6 @@ html, body {
   min-width: 0;
   height: 44px;
   padding: 0;
-  font: inherit;
   font-size: 1rem;
   color: var(--muted);
   background: transparent;
@@ -179,11 +337,9 @@ html, body {
   border-color: var(--green);
 }
 
-/* ---- Start button ---- */
 .start {
   width: 100%;
   height: 56px;
-  font: inherit;
   font-size: 1.05rem;
   font-weight: 500;
   color: var(--bg);

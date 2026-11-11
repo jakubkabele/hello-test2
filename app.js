@@ -1,250 +1,117 @@
-// Tuner v1 — guitar tuner using the YIN pitch detection algorithm.
+// App shell — screen navigation (hash routes) and the Home / Log screens.
+//
+// Routes:
+//   #/                  Home
+//   #/tuner             Tuner
+//   #/log               Log
+//   #/songs             Songs           (coming later)
+//   #/today             Today's session (coming later)
+//   #/exercise/<id>     Exercises       (coming later, one per build step)
 
-// ---------- Settings ----------
-const STRINGS = [
-  { name: 'E', freq: 82.41 },  // E2
-  { name: 'A', freq: 110.0 },  // A2
-  { name: 'D', freq: 146.83 }, // D3
-  { name: 'G', freq: 196.0 },  // G3
-  { name: 'B', freq: 246.94 }, // B3
-  { name: 'E', freq: 329.63 }, // E4
-];
+const ROUTES = {
+  '':                        { screen: 'home',  title: 'Home' },
+  'tuner':                   { screen: 'tuner', title: 'Tuner' },
+  'log':                     { screen: 'log',   title: 'Log' },
+  'songs':                   { screen: 'soon',  title: 'Songs',              soon: 'Add your songs and their chords here — coming in a later step.' },
+  'today':                   { screen: 'soon',  title: "Today's session",    soon: 'A guided session built from your log — coming in step 6.' },
+  'exercise/clean-check':    { screen: 'soon',  title: 'Clean chord check',  soon: 'Pluck a chord string by string and see which strings ring clean — coming in step 2.' },
+  'exercise/change-drill':   { screen: 'soon',  title: 'Chord change drill', soon: 'Strum and switch chords on the beat — coming in step 3.' },
+  'exercise/find-note':      { screen: 'soon',  title: 'Find the note',      soon: 'Find a note anywhere on the fretboard — coming in step 5.' },
+  'exercise/rhythm':         { screen: 'soon',  title: 'Rhythm',             soon: 'Strum with the metronome and check your timing — coming in step 5.' },
+};
 
-const MIN_FREQ = 60;          // lowest pitch we look for (Hz)
-const MAX_FREQ = 1000;        // highest pitch we look for (Hz)
-const YIN_THRESHOLD = 0.15;   // lower = stricter about what counts as a clear note
-const MIN_RMS = 0.008;        // below this loudness we treat the input as silence
-const IN_TUNE_CENTS = 5;
-const NEAR_CENTS = 20;
-const NEEDLE_RANGE = 50;      // needle spans ±50 cents
-const ONSET_FRAMES = 3;       // clear frames needed before showing a note
-const RELEASE_FRAMES = 18;    // unclear frames before fading to "—" (~0.3 s)
-const HISTORY = 5;            // median filter length
+const screens = document.querySelectorAll('.screen');
+const titleEl = document.getElementById('title');
+const backBtn = document.getElementById('back');
+let depth = 0; // how many screens deep we navigated inside the app
 
-// ---------- Elements ----------
-const app = document.querySelector('.app');
-const noteEl = document.getElementById('note');
-const hzEl = document.getElementById('hz');
-const centsEl = document.getElementById('cents');
-const needleEl = document.getElementById('needle');
-const startBtn = document.getElementById('start');
-const errorEl = document.getElementById('error');
-const modeButtons = document.querySelectorAll('.mode');
+function currentPath() {
+  return location.hash.replace(/^#\/?/, '');
+}
 
-// ---------- State ----------
-let audioCtx = null;
-let analyser = null;
-let stream = null;
-let buffer = null;
-let yinBuf = null;
-let running = false;
-let rafId = 0;
+function render() {
+  const path = currentPath();
+  const route = ROUTES[path] || ROUTES[''];
 
-let lockedString = null;      // null = Auto, otherwise index into STRINGS
-let history = [];
-let goodFrames = 0;
-let badFrames = RELEASE_FRAMES;
-let silent = true;
-let shownCents = 0;           // smoothed needle position
-let targetCents = 0;
+  // Leaving the tuner always turns the mic off.
+  if (route.screen !== 'tuner') Tuner.stop();
 
-// ---------- Mode row ----------
-modeButtons.forEach((btn) => {
-  btn.addEventListener('click', () => {
-    modeButtons.forEach((b) => b.classList.remove('active'));
-    btn.classList.add('active');
-    lockedString = btn.dataset.mode === 'auto' ? null : Number(btn.dataset.mode);
-    history = [];
-  });
+  screens.forEach((s) => (s.hidden = s.dataset.screen !== route.screen));
+  titleEl.textContent = route.title;
+  backBtn.hidden = route.screen === 'home';
+  document.title = route.screen === 'home' ? 'Practice' : route.title;
+
+  if (route.screen === 'home') renderHome();
+  if (route.screen === 'log') renderLog();
+  if (route.screen === 'soon') document.getElementById('soon-text').textContent = route.soon;
+
+  window.scrollTo(0, 0);
+}
+
+window.addEventListener('hashchange', () => {
+  depth = currentPath() === '' ? 0 : depth + 1;
+  render();
 });
 
-// ---------- Start / stop ----------
-startBtn.addEventListener('click', () => {
-  if (running) stop();
-  else start();
+backBtn.addEventListener('click', () => {
+  // Use real "back" when we came from inside the app, so the phone's
+  // back gesture and this button behave the same way.
+  if (depth > 0) history.back();
+  else location.hash = '#/';
 });
 
-async function start() {
-  errorEl.hidden = true;
-  try {
-    // Audio must be created inside the tap, or phones block it.
-    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') await audioCtx.resume();
+// ---------- Home ----------
+function renderHome() {
+  const n = Store.all().length;
+  document.getElementById('log-count').textContent = n ? String(n) : '';
+}
 
-    stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        // Phone "voice" processing distorts music, so turn it off.
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
-      },
+// ---------- Log ----------
+function renderLog() {
+  const days = Store.byDay();
+  const list = document.getElementById('log-list');
+  document.getElementById('log-empty').hidden = days.length > 0;
+
+  list.innerHTML = '';
+  days.forEach((day) => {
+    const block = document.createElement('div');
+    block.className = 'day';
+
+    const head = document.createElement('div');
+    head.className = 'day-head';
+    head.innerHTML = `<span>${formatDate(day.date)}</span><span>${formatDuration(day.activeSec)} active</span>`;
+    block.appendChild(head);
+
+    day.entries.forEach((e) => {
+      const row = document.createElement('div');
+      row.className = 'entry';
+      const name = document.createElement('span');
+      name.className = 'entry-name';
+      name.textContent = e.summary ? `${e.title} — ${e.summary}` : e.title;
+      const time = document.createElement('span');
+      time.className = 'entry-time';
+      time.textContent = formatDuration(e.activeSec);
+      row.append(name, time);
+      block.appendChild(row);
     });
 
-    const source = audioCtx.createMediaStreamSource(stream);
-    analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 4096;
-    source.connect(analyser);
-
-    buffer = new Float32Array(analyser.fftSize);
-    yinBuf = new Float32Array(Math.ceil(audioCtx.sampleRate / MIN_FREQ) + 2);
-
-    running = true;
-    startBtn.textContent = 'Stop';
-    startBtn.classList.add('listening');
-    loop();
-  } catch (err) {
-    errorEl.textContent = 'Microphone not available. Please allow mic access and try again.';
-    errorEl.hidden = false;
-    stop();
-  }
-}
-
-function stop() {
-  running = false;
-  cancelAnimationFrame(rafId);
-  if (stream) stream.getTracks().forEach((t) => t.stop());
-  stream = null;
-  analyser = null;
-  history = [];
-  goodFrames = 0;
-  badFrames = RELEASE_FRAMES;
-  shownCents = 0;
-  needleEl.style.transform = '';
-  startBtn.textContent = 'Start listening';
-  startBtn.classList.remove('listening');
-  showSilence();
-}
-
-// ---------- Main loop ----------
-function loop() {
-  if (!running) return;
-  analyser.getFloatTimeDomainData(buffer);
-
-  const freq = rms(buffer) >= MIN_RMS ? yin(buffer, audioCtx.sampleRate) : null;
-
-  if (freq) {
-    goodFrames++;
-    badFrames = 0;
-    history.push(freq);
-    if (history.length > HISTORY) history.shift();
-    if (goodFrames >= ONSET_FRAMES) showPitch(median(history));
-  } else {
-    goodFrames = 0;
-    badFrames++;
-    if (badFrames >= RELEASE_FRAMES) {
-      history = [];
-      showSilence();
-    }
-  }
-
-  // Ease the needle toward its target so it glides instead of jumping.
-  shownCents += (targetCents - shownCents) * 0.18;
-  const pct = (clamp(shownCents, -NEEDLE_RANGE, NEEDLE_RANGE) / NEEDLE_RANGE) * 50;
-  needleEl.style.transform = `translateX(${pct * needleEl.parentElement.clientWidth / 100}px)`;
-
-  rafId = requestAnimationFrame(loop);
-}
-
-// ---------- Display ----------
-function showPitch(freq) {
-  const idx = lockedString !== null ? lockedString : nearestString(freq);
-  const target = STRINGS[idx];
-  const cents = 1200 * Math.log2(freq / target.freq);
-
-  silent = false;
-  targetCents = cents;
-
-  noteEl.textContent = target.name;
-  noteEl.classList.remove('silent');
-  hzEl.textContent = `${freq.toFixed(1)} Hz`;
-
-  const rounded = Math.round(cents);
-  centsEl.textContent = `${rounded > 0 ? '+' : ''}${rounded} cents`;
-
-  const abs = Math.abs(cents);
-  app.classList.remove('is-silent', 'in-tune', 'near', 'far');
-  app.classList.add(abs <= IN_TUNE_CENTS ? 'in-tune' : abs <= NEAR_CENTS ? 'near' : 'far');
-}
-
-function showSilence() {
-  if (silent && noteEl.textContent === '—') return;
-  silent = true;
-  targetCents = 0;
-  noteEl.textContent = '—';
-  noteEl.classList.add('silent');
-  app.classList.remove('in-tune', 'near', 'far');
-  app.classList.add('is-silent');
-}
-
-// ---------- Pitch detection (YIN) ----------
-// Finds how many samples it takes for the wave to repeat itself.
-function yin(buf, sampleRate) {
-  const tauMin = Math.floor(sampleRate / MAX_FREQ);
-  const tauMax = Math.min(Math.ceil(sampleRate / MIN_FREQ), yinBuf.length - 1);
-  const W = Math.min(2048, buf.length - tauMax);
-  const d = yinBuf;
-
-  // 1. Difference: how different is the wave from itself shifted by tau samples?
-  d[0] = 1;
-  let runningSum = 0;
-  for (let tau = 1; tau <= tauMax; tau++) {
-    let sum = 0;
-    for (let i = 0; i < W; i++) {
-      const delta = buf[i] - buf[i + tau];
-      sum += delta * delta;
-    }
-    // 2. Normalize so the threshold works at any volume.
-    runningSum += sum;
-    d[tau] = runningSum > 0 ? (sum * tau) / runningSum : 1;
-  }
-
-  // 3. Pick the FIRST shift that matches well (avoids octave mistakes).
-  let tau = -1;
-  for (let t = tauMin; t <= tauMax; t++) {
-    if (d[t] < YIN_THRESHOLD) {
-      while (t + 1 <= tauMax && d[t + 1] < d[t]) t++;
-      tau = t;
-      break;
-    }
-  }
-  if (tau === -1) return null;
-
-  // 4. Refine between samples for sub-sample precision.
-  let better = tau;
-  if (tau > 1 && tau < tauMax) {
-    const a = d[tau - 1], b = d[tau], c = d[tau + 1];
-    const denom = a + c - 2 * b;
-    if (denom !== 0) better = tau + (a - c) / (2 * denom);
-  }
-
-  const freq = sampleRate / better;
-  return freq >= MIN_FREQ && freq <= MAX_FREQ ? freq : null;
-}
-
-// ---------- Helpers ----------
-function nearestString(freq) {
-  let best = 0;
-  let bestDist = Infinity;
-  STRINGS.forEach((s, i) => {
-    const dist = Math.abs(Math.log2(freq / s.freq));
-    if (dist < bestDist) { bestDist = dist; best = i; }
+    list.appendChild(block);
   });
-  return best;
 }
 
-function rms(buf) {
-  let sum = 0;
-  for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
-  return Math.sqrt(sum / buf.length);
+function formatDate(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const today = new Date();
+  const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+  if (date.toDateString() === today.toDateString()) return 'Today';
+  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+  return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
-function median(arr) {
-  const s = [...arr].sort((a, b) => a - b);
-  return s[Math.floor(s.length / 2)];
+function formatDuration(sec) {
+  if (sec < 60) return `${Math.round(sec)} s`;
+  return `${Math.round(sec / 60)} min`;
 }
 
-function clamp(v, lo, hi) {
-  return Math.max(lo, Math.min(hi, v));
-}
-
-showSilence();
+render();
