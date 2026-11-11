@@ -291,12 +291,15 @@ const Chords = (() => {
 
   // ---------- Checking a shape ----------
   const OK = 0.1;     // minimum strength that counts as "this note is there"
-  const RING = 0.35;   // a string must reach 30% of the chord's typical string
-  const EXTRA = 0.3;  // a note this strong that shouldn't be there → problem
+  // Defaults (= sensitivity level 3); the app passes the current level's values.
+  const RING_DEFAULT = 0.35;  // a string must reach 35% of the chord's typical string
+  const EXTRA_DEFAULT = 0.3;  // a note this strong that shouldn't be there → problem
 
   // Returns { strings: [{ status, heard }], clean, problems: [text] }
   // status: 'ok' | 'weak' | 'wrong' | 'muted' | 'unsure' | 'skip' | 'extra' (unplayed string ringing)
-  function check(h, shape) {
+  function check(h, shape, opts = {}) {
+    const RING = opts.ring ?? RING_DEFAULT;
+    const EXTRA = opts.extra ?? EXTRA_DEFAULT;
     const expected = shape.midi.filter((m) => m >= 0);
     // Judge each string against how loud this chord's strings typically are.
     const levels = expected.map((m) => h[m]).sort((a, b) => a - b);

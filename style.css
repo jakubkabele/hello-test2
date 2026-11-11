@@ -58,6 +58,17 @@ button { font: inherit; }
   cursor: pointer;
 }
 
+.gear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin: 0 -10px 0 auto;
+  color: var(--muted);
+}
+.gear:active { opacity: 0.6; }
+
 .title {
   font-size: 0.95rem;
   font-weight: 500;
@@ -507,3 +518,78 @@ button { font: inherit; }
   line-height: 1.45;
   color: var(--muted);
 }
+
+/* ================= Settings ================= */
+.sens-intro {
+  margin: 0 0 16px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.sens-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.sens {
+  display: block;
+  width: 100%;
+  padding: 14px 16px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--dim);
+  border-radius: 14px;
+  cursor: pointer;
+}
+
+.sens.active {
+  background: var(--surface);
+  border-color: var(--green);
+}
+
+.sens-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sens-dots { display: flex; gap: 3px; }
+.sens-dots i {
+  width: 5px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--dim);
+}
+.sens-dots i.on { background: var(--text); opacity: 0.55; }
+.sens.active .sens-dots i.on { opacity: 1; }
+.sens.active .sens-dots i.on { background: var(--green); }
+
+.sens-name {
+  font-size: 1.02rem;
+  font-weight: 500;
+}
+
+.sens-tag {
+  margin-left: auto;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  color: var(--green);
+  border: 1px solid var(--green);
+  border-radius: 999px;
+}
+
+.sens-text,
+.sens-fit {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.sens-fit { margin-top: 6px; color: var(--text); opacity: 0.8; }
+.sens-fit.warn { color: var(--amber); opacity: 1; }

@@ -12,6 +12,9 @@
     <header class="topbar">
       <button id="back" class="back" aria-label="Back" hidden>‹</button>
       <span id="title" class="title">Home</span>
+      <a id="gear" class="gear" href="#/settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"/><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.6-2-3.4-2.4 1a7.5 7.5 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5A7.5 7.5 0 0 0 7 6.5l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 3l-2 1.6 2 3.4 2.4-1a7.5 7.5 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.5 7.5 0 0 0 2.6-1.5l2.4 1 2-3.4-2-1.6Z"/></svg>
+      </a>
     </header>
 
     <!-- ========== Home ========== -->
@@ -45,6 +48,14 @@
         <p id="soon-text" class="soon-text"></p>
         <a class="link-btn" href="#/">Back to home</a>
       </div>
+    </section>
+
+    <!-- ========== Settings ========== -->
+    <section class="screen" data-screen="settings">
+      <h2 class="section">Listening sensitivity</h2>
+      <p class="sens-intro">How picky the app is when it listens — for the tuner, the chord check and every exercise that listens. Lower = more forgiving and steadier. Higher = more exact.</p>
+      <div id="sens-list" class="sens-list" role="radiogroup" aria-label="Listening sensitivity"></div>
+      <p class="sens-intro">Changes apply right away, even mid-exercise.</p>
     </section>
 
     <!-- ========== Log ========== -->
@@ -115,6 +126,7 @@
   </div>
 
   <script src="store.js"></script>
+  <script src="settings.js"></script>
   <script src="audio.js"></script>
   <script src="tuner.js"></script>
   <script src="chords.js"></script>

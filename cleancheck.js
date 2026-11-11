@@ -20,8 +20,10 @@ const CleanCheck = (() => {
   const MIN_FIT = 0.3;         // how well the sound must fit a chord shape
   const MIN_RING = 0.08;       // still ringing at the end (vs. its start)
   const MIN_LEVEL = 0.004;     // quieter than this isn't a strum/pluck
-  const MIN_FOCUS = 0.35;      // single pluck: share of new sound on one note's harmonics
-  const GIVE_UP_MS = 5000;     // string mode: no new string for 5 s → rest muted
+  // From Settings (sensitivity level): ring / extra = how strict a string is
+  // judged, stick = how hard it is to change the chord name in Auto, focus =
+  // how clear a single pluck must be, giveUp = ms before remaining strings = muted.
+  const P = () => Settings.profile().chord;
 
   // ---------- Elements ----------
   const root = document.querySelector(`[data-screen="${SCREEN}"]`);
@@ -55,6 +57,7 @@ const CleanCheck = (() => {
   let baseRms = 0, baseBright = 0, ignoreUntil = 0;
   let lastFrame = 0, lastEvent = 0, activeMs = 0;
   let settleUntil = 0, settleLevel = 0; // wait for a strum to fade before plucks
+  let lastHeard = null;    // chord shape recognized last time (for stickiness)
 
   // string-by-string progress
   let status = [];         // per string: null (to do) | 'ok' | 'wrong' | 'muted' | 'skip'
@@ -160,6 +163,7 @@ const CleanCheck = (() => {
     }
     running = true;
     settleUntil = 0;
+    lastHeard = null;
 
     const redo = settings.mode === 'string' && phase === 'done' && status.some((s) => s === null);
     if (!redo) {
@@ -236,7 +240,7 @@ const CleanCheck = (() => {
         baseRms = baseRms * 0.9 + r * 0.1;
         baseBright = baseBright * 0.9 + br * 0.1;
         // String mode: nothing new for a while → remaining strings were muted.
-        if (settings.mode === 'string' && !identifying && lastEvent && now - lastEvent > GIVE_UP_MS &&
+        if (settings.mode === 'string' && !identifying && lastEvent && now - lastEvent > P().giveUp &&
             status.some((s) => s === 'ok' || s === 'wrong')) {
           status = status.map((s) => (s === null ? 'muted' : s));
           finishStrings();
@@ -266,7 +270,13 @@ const CleanCheck = (() => {
   function onStrum(buf, ringing) {
     const h = Chords.hear(buf, mic.sampleRate);
     const ranked = Chords.recognize(h);
-    const best = ranked[0];
+    let best = ranked[0];
+    // Stickiness: in Auto, keep the chord we heard last time unless the new
+    // one fits clearly better (stops Em flickering to E7 for a moment).
+    if (lastHeard && best.shape.chord !== lastHeard.chord) {
+      const prev = ranked.find((r) => r.shape === lastHeard);
+      if (prev && best.score - prev.score < P().stick) best = prev;
+    }
 
     if (!ringing || h.flatness > MAX_FLATNESS || best.score < MIN_FIT) {
       sub = 'Didn’t catch a clear chord — strum again.';
@@ -274,6 +284,7 @@ const CleanCheck = (() => {
     }
     lastEvent = performance.now();
 
+    lastHeard = best.shape;
     if (identifying) {
       shape = best.shape;
       identifying = false;
@@ -285,7 +296,7 @@ const CleanCheck = (() => {
 
     const expected = settings.pick === 'manual' ? pickedShape() : best.shape;
     shape = expected;
-    const result = Chords.check(h, expected);
+    const result = Chords.check(h, expected, P());
 
     marks = result.strings.map((st) => {
       if (st.status === 'skip') return 'skip';
@@ -335,7 +346,7 @@ const CleanCheck = (() => {
     [-2, -1, 1, 2, 12].forEach((d) => candidates.add(want + d));
     const diff = Chords.newSound(before, after, mic.sampleRate);
     const heard = Chords.whichNote(diff, [...candidates]);
-    if (heard.note < 0 || heard.focus < MIN_FOCUS || diff.share < 0.05) return; // knock / thud / noise
+    if (heard.note < 0 || heard.focus < P().focus || diff.share < 0.05) return; // knock / thud / noise
 
     let matched = -1;
     if (heard.note === want || heard.note === want + 12) matched = current;

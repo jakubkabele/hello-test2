@@ -15,12 +15,11 @@ const Tuner = (() => {
 
   const YIN_THRESHOLD = 0.15;   // lower = stricter about what counts as a clear note
   const MIN_RMS = 0.008;        // below this loudness we treat the input as silence
-  const IN_TUNE_CENTS = 5;
-  const NEAR_CENTS = 20;
   const NEEDLE_RANGE = 50;      // needle spans ±50 cents
-  const ONSET_FRAMES = 3;       // clear frames needed before showing a note
-  const RELEASE_FRAMES = 18;    // unclear frames before fading to "—" (~0.3 s)
-  const HISTORY = 5;            // median filter length
+  // How steady / exact the tuner is comes from Settings (sensitivity level):
+  //   inTune / near: cents for green / amber · history: readings averaged
+  //   ease: needle speed · onset / release: frames before a note shows / fades
+  const P = () => Settings.profile().tuner;
   const MIN_LOG_SEC = 5;        // don't log tuner sessions shorter than this
 
   // ---------- Elements ----------
@@ -43,7 +42,7 @@ const Tuner = (() => {
   let lockedString = null;      // null = Auto, otherwise index into STRINGS
   let history = [];
   let goodFrames = 0;
-  let badFrames = RELEASE_FRAMES;
+  let badFrames = 999;
   let silent = true;
   let shownCents = 0;           // smoothed needle position
   let targetCents = 0;
@@ -98,7 +97,7 @@ const Tuner = (() => {
     analyser = null;
     history = [];
     goodFrames = 0;
-    badFrames = RELEASE_FRAMES;
+    badFrames = 999;
     shownCents = 0;
     needleEl.style.transform = '';
     startBtn.textContent = 'Start listening';
@@ -135,12 +134,12 @@ const Tuner = (() => {
       goodFrames++;
       badFrames = 0;
       history.push(freq);
-      if (history.length > HISTORY) history.shift();
-      if (goodFrames >= ONSET_FRAMES) showPitch(median(history));
+      while (history.length > P().history) history.shift();
+      if (goodFrames >= P().onset) showPitch(median(history));
     } else {
       goodFrames = 0;
       badFrames++;
-      if (badFrames >= RELEASE_FRAMES) {
+      if (badFrames >= P().release) {
         history = [];
         showSilence();
       }
@@ -149,7 +148,7 @@ const Tuner = (() => {
     if (!silent) activeMs += dt;
 
     // Ease the needle toward its target so it glides instead of jumping.
-    shownCents += (targetCents - shownCents) * 0.18;
+    shownCents += (targetCents - shownCents) * P().ease;
     const pct = (clamp(shownCents, -NEEDLE_RANGE, NEEDLE_RANGE) / NEEDLE_RANGE) * 50;
     needleEl.style.transform = `translateX(${pct * needleEl.parentElement.clientWidth / 100}px)`;
 
@@ -173,9 +172,10 @@ const Tuner = (() => {
     centsEl.textContent = `${rounded > 0 ? '+' : ''}${rounded} cents`;
 
     const abs = Math.abs(cents);
-    if (abs <= IN_TUNE_CENTS) tunedStrings.add(idx);
+    const { inTune, near } = P();
+    if (abs <= inTune) tunedStrings.add(idx);
     root.classList.remove('is-silent', 'in-tune', 'near', 'far');
-    root.classList.add(abs <= IN_TUNE_CENTS ? 'in-tune' : abs <= NEAR_CENTS ? 'near' : 'far');
+    root.classList.add(abs <= inTune ? 'in-tune' : abs <= near ? 'near' : 'far');
   }
 
   function showSilence() {

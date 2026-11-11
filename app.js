@@ -4,6 +4,7 @@
 //   #/                  Home
 //   #/tuner             Tuner
 //   #/log               Log
+//   #/settings          Settings (listening sensitivity)
 //   #/songs             Songs           (coming later)
 //   #/today             Today's session (coming later)
 //   #/exercise/clean-check  Clean chord check
@@ -13,6 +14,7 @@ const ROUTES = {
   '':                        { screen: 'home',  title: 'Home' },
   'tuner':                   { screen: 'tuner', title: 'Tuner' },
   'log':                     { screen: 'log',   title: 'Log' },
+  'settings':                { screen: 'settings', title: 'Settings' },
   'songs':                   { screen: 'soon',  title: 'Songs',              soon: 'Add your songs and their chords here — coming in a later step.' },
   'today':                   { screen: 'soon',  title: "Today's session",    soon: 'A guided session built from your log — coming in step 6.' },
   'exercise/clean-check':    { screen: 'clean-check', title: 'Clean chord check' },
@@ -41,10 +43,12 @@ function render() {
   screens.forEach((s) => (s.hidden = s.dataset.screen !== route.screen));
   titleEl.textContent = route.title;
   backBtn.hidden = route.screen === 'home';
+  document.getElementById('gear').hidden = route.screen === 'settings';
   document.title = route.screen === 'home' ? 'Practice' : route.title;
 
   if (route.screen === 'home') renderHome();
   if (route.screen === 'log') renderLog();
+  if (route.screen === 'settings') Settings.render();
   if (route.screen === CleanCheck.screen) CleanCheck.show();
   if (route.screen === 'soon') document.getElementById('soon-text').textContent = route.soon;
 
