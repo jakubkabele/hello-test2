@@ -92,6 +92,65 @@
       <p class="error" hidden></p>
     </section>
 
+    <!-- ========== Chord change drill ========== -->
+    <section class="screen drill" data-screen="change-drill">
+      <div class="dr-setup">
+        <div class="seg seg-4">
+          <button data-group="warmup">Warm-up</button>
+          <button data-group="barre1">Open→barre</button>
+          <button data-group="barre2">Barre→barre</button>
+          <button data-group="custom">Custom</button>
+        </div>
+        <p class="dr-group-hint"></p>
+        <div class="dr-pairs"></div>
+        <div class="dr-custom" hidden>
+          <select class="dr-from" aria-label="First chord"></select>
+          <span>↔</span>
+          <select class="dr-to" aria-label="Second chord"></select>
+        </div>
+
+        <h2 class="section">Tempo</h2>
+        <div class="dr-tempo">
+          <button class="dr-minus" aria-label="Slower">−</button>
+          <span><span class="dr-bpm">60</span> BPM</span>
+          <button class="dr-plus" aria-label="Faster">+</button>
+        </div>
+        <p class="dr-label">Change chord every</p>
+        <div class="seg">
+          <button data-beats="4">4 beats</button>
+          <button data-beats="2">2 beats</button>
+          <button data-beats="1">1 beat</button>
+        </div>
+        <label class="dr-toggle"><input type="checkbox" class="dr-auto"> Raise tempo when I’m consistent</label>
+        <label class="dr-toggle"><input type="checkbox" class="dr-click"> Metronome click</label>
+        <button class="start dr-start">Start</button>
+        <p class="error" hidden></p>
+      </div>
+
+      <div class="dr-run" hidden>
+        <div class="dr-top"><span class="dr-time">1:00</span><span class="dr-count">0 clean</span></div>
+        <div class="dr-chords">
+          <div class="dr-chord dr-a"><div class="dr-name"></div><svg class="dr-diag cc-diagram" viewBox="0 0 240 260"></svg></div>
+          <div class="dr-chord dr-b"><div class="dr-name"></div><svg class="dr-diag cc-diagram" viewBox="0 0 240 260"></svg></div>
+        </div>
+        <div class="dr-beatdots"></div>
+        <p class="dr-status"></p>
+        <div class="dr-history"></div>
+        <button class="start listening dr-stop">Stop</button>
+      </div>
+
+      <div class="dr-summary" hidden>
+        <div class="dr-big"></div>
+        <div class="dr-unit">clean changes / min</div>
+        <p class="dr-pairname"></p>
+        <p class="dr-compare"></p>
+        <ul class="cc-problems dr-details"></ul>
+        <p class="dr-next"></p>
+        <button class="start dr-again">Go again</button>
+        <button class="link-btn dr-back">Change chords or tempo</button>
+      </div>
+    </section>
+
     <!-- ========== Tuner (v1) ========== -->
     <section class="screen tuner" data-screen="tuner">
       <section class="readout" aria-live="polite">
@@ -132,6 +191,7 @@
   <script src="tuner.js"></script>
   <script src="chords.js"></script>
   <script src="cleancheck.js"></script>
+  <script src="drill.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

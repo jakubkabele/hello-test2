@@ -362,7 +362,7 @@ const Chords = (() => {
 
   return {
     LIBRARY, STRING_NAMES, OPEN_MIDI,
-    hear, newSound, whichNote, recognize, check, noteName,
+    hear, newSound, whichNote, recognize, fit, check, noteName,
   };
 })();
 

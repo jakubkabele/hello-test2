@@ -111,8 +111,13 @@ const Sound = (() => {
     return Math.sqrt(sum / (buf.length - from));
   }
 
+  // The audio clock (for a sample-accurate metronome). Valid after openMic().
+  function context() {
+    return ctx;
+  }
+
   return {
-    OPEN_STRINGS, openMic, closeMic,
+    OPEN_STRINGS, openMic, closeMic, context,
     yin, yinCurve, yinPick,
     rms, brightness,
   };
