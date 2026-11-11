@@ -593,3 +593,12 @@ button { font: inherit; }
 
 .sens-fit { margin-top: 6px; color: var(--text); opacity: 0.8; }
 .sens-fit.warn { color: var(--amber); opacity: 1; }
+
+.cc-spot {
+  display: block;
+  margin: 14px auto 0;
+  color: var(--text);
+  background: transparent;
+  font-size: 0.92rem;
+  cursor: pointer;
+}

@@ -37,6 +37,7 @@ const CleanCheck = (() => {
   const listEl = root.querySelector('.cc-problems');
   const noteEl = root.querySelector('.cc-note');
   const btn = root.querySelector('.cc-start');
+  const spotBtn = root.querySelector('.cc-spot');
   const errorEl = root.querySelector('.error');
 
   // ---------- State ----------
@@ -58,6 +59,11 @@ const CleanCheck = (() => {
   let lastFrame = 0, lastEvent = 0, activeMs = 0;
   let settleUntil = 0, settleLevel = 0; // wait for a strum to fade before plucks
   let lastHeard = null;    // chord shape recognized last time (for stickiness)
+
+  // Hidden-string spot check (strum mode): strings that play the same note as a
+  // lower string, an octave up, hide inside a strum — so we ask for a quick pluck.
+  let spot = null;         // { name, wasClean } while the spot check runs
+  let spotOffer = [];      // string indexes a strum couldn't verify
 
   // string-by-string progress
   let status = [];         // per string: null (to do) | 'ok' | 'wrong' | 'muted' | 'skip'
@@ -126,6 +132,8 @@ const CleanCheck = (() => {
     message = '';
     sub = '';
     identifying = false;
+    spot = null;
+    spotOffer = [];
     if (settings.mode === 'string' && shape) resetStrings();
     phase = 'idle';
   }
@@ -194,6 +202,8 @@ const CleanCheck = (() => {
 
   function stop() {
     if (running) Sound.closeMic();
+    if (spot) { spot = null; settleUntil = 0; }
+    spotOffer = [];
     running = false;
     cancelAnimationFrame(rafId);
     if (phase === 'listen' || phase === 'capture') phase = 'idle';
@@ -220,6 +230,7 @@ const CleanCheck = (() => {
       // Let the identifying strum fade, or plucks would drown in it.
       if (r < settleLevel || now > settleUntil) {
         settleUntil = 0;
+        if (spot) lastEvent = now; // "no sound for a while = muted" counts from here
         baseRms = r;
         baseBright = br;
         render();
@@ -230,7 +241,7 @@ const CleanCheck = (() => {
         ((br > baseBright * 2.2 && br > MIN_LEVEL * 0.3) || (r > baseRms * 1.8 && r > MIN_LEVEL));
       if (hit) {
         phase = 'capture';
-        captureKind = settings.mode === 'strum' || identifying ? 'strum' : 'pluck';
+        captureKind = (settings.mode === 'strum' && !spot) || identifying ? 'strum' : 'pluck';
         before = captureKind === 'pluck' ? buf.slice() : null; // what was ringing before
         // Wait until the whole 0.7 s window is filled with sound AFTER the hit.
         captureEnd = now + (buf.length / mic.sampleRate) * 1000 + 60;
@@ -240,11 +251,11 @@ const CleanCheck = (() => {
         baseRms = baseRms * 0.9 + r * 0.1;
         baseBright = baseBright * 0.9 + br * 0.1;
         // String mode: nothing new for a while → remaining strings were muted.
-        if (settings.mode === 'string' && !identifying && lastEvent && now - lastEvent > P().giveUp &&
-            status.some((s) => s === 'ok' || s === 'wrong')) {
+        if ((settings.mode === 'string' || spot) && !identifying && lastEvent && now - lastEvent > P().giveUp &&
+            (spot || status.some((s) => s === 'ok' || s === 'wrong'))) {
           status = status.map((s) => (s === null ? 'muted' : s));
-          finishStrings();
-          return;
+          if (spot) finishSpot();
+          else { finishStrings(); return; }
         }
       }
     } else if (phase === 'capture') {
@@ -331,6 +342,66 @@ const CleanCheck = (() => {
       const short = p.split(' — ')[0];
       st.issues[short] = (st.issues[short] || 0) + 1;
     });
+
+    // Strings the strum couldn't verify → spot check (automatic at Precise/Maximum).
+    spotOffer = soundedLike && settings.pick === 'manual' ? [] : marks.map((m, i) => (m === 'ok-faint' ? i : -1)).filter((i) => i >= 0);
+    if (spotOffer.length && P().spot) startSpot(result.clean);
+  }
+
+  // ---------- Hidden-string spot check ----------
+  function startSpot(wasClean) {
+    if (!running || !shape || !spotOffer.length) return;
+    spot = { name: shape.name, wasClean, marks: marks.slice(), problems: problems.slice() };
+    status = shape.frets.map((f, i) => (spotOffer.includes(i) ? null : 'skip'));
+    heardNote = shape.frets.map(() => 0);
+    spotOffer = [];
+    // Wait for the strum to be palm-muted, or plucks would drown in it.
+    settleUntil = performance.now() + 4000;
+    settleLevel = peak * 0.12;
+    lastEvent = 0;
+    render();
+  }
+
+  spotBtn.addEventListener('click', () => {
+    const st = strumStats[shape && shape.name];
+    startSpot(!problems.length && !!st);
+  });
+
+  function finishSpot() {
+    const added = [];
+    status.forEach((s, i) => {
+      if (s === 'skip') return;
+      const name = NAMES[i] === 'e' ? 'high e' : NAMES[i];
+      if (s === 'ok') marks[i] = 'ok';
+      if (s === 'muted') {
+        marks[i] = 'muted';
+        added.push(`${name} string muted — a finger may be touching it`);
+      }
+      if (s === 'wrong') {
+        marks[i] = 'warn';
+        added.push(`${name} string: heard ${Chords.noteName(heardNote[i])}, should be ${Chords.noteName(shape.midi[i])} — check fret ${shape.frets[i]}`);
+      }
+    });
+    marks = spot.marks.map((m, i) => (status[i] === 'skip' ? m : marks[i]));
+    problems = spot.problems.concat(added);
+    showFaintNote = marks.includes('ok-faint');
+    message = problems.length
+      ? `${shape.name} — ${problems.length === 1 ? '1 thing' : `${problems.length} things`} to fix`
+      : `${shape.name} ✓ clean — every string checked`;
+    sub = 'Strum again any time.';
+
+    const st = strumStats[spot.name];
+    if (st) {
+      if (added.length && spot.wasClean) st.clean--;
+      added.forEach((p) => {
+        const short = p.split(' — ')[0];
+        st.issues[short] = (st.issues[short] || 0) + 1;
+      });
+    }
+    spot = null;
+    status = [];
+    settleUntil = 0;
+    render();
   }
 
   // ---------- String by string ----------
@@ -363,8 +434,17 @@ const CleanCheck = (() => {
       return;
     }
     lastEvent = performance.now();
-    updateStringMarks();
-    if (status.every((s) => s !== null)) finishStrings();
+    if (spot) {
+      // Keep the strum's marks; just update the strings being spot-checked.
+      marks = spot.marks.map((m, i) =>
+        status[i] === 'ok' ? 'ok' : status[i] === 'muted' ? 'muted' : status[i] === 'wrong' ? 'warn' : m);
+    } else {
+      updateStringMarks();
+    }
+    if (status.every((s) => s !== null)) {
+      if (spot) finishSpot();
+      else finishStrings();
+    }
   }
 
   function updateStringMarks() {
@@ -453,16 +533,22 @@ const CleanCheck = (() => {
         big = identifying ? 'Strum the chord once…' : settings.mode === 'strum' ? 'Listening — strum a chord.' : '';
       }
     }
-    if (running && settings.mode === 'string' && !identifying && shape && settleUntil) {
+    const plucking = running && !identifying && shape && (settings.mode === 'string' || spot);
+    const hiddenNames = () => status.map((s, i) => (s === null ? (NAMES[i] === 'e' ? 'high e' : NAMES[i]) : null)).filter(Boolean).join(', ');
+    if (plucking && spot && settleUntil) {
+      big = 'Quick check: hidden strings';
+      small = `Mute with your palm, then pluck ${hiddenNames()} — one at a time.`;
+    } else if (plucking && settleUntil) {
       big = `Got it: ${shape.name}`;
       small = 'Mute the strings with your palm, then pluck each one.';
-    } else if (running && settings.mode === 'string' && !identifying && shape) {
+    } else if (plucking) {
       const todo = status.findIndex((s) => s === null);
       if (todo >= 0) {
         big = `Pluck the ${NAMES[todo] === 'e' ? 'high e' : NAMES[todo]} string`;
         const f = shape.frets[todo];
-        small = (f === 0 ? 'open' : `fret ${f} · ${Chords.noteName(shape.midi[todo])}`) +
-          (lastEvent ? ' — no sound for 5 s = muted' : '');
+        small = (spot ? 'Quick check · ' : '') +
+          (f === 0 ? 'open' : `fret ${f} · ${Chords.noteName(shape.midi[todo])}`) +
+          (lastEvent ? ` — no sound for ${Math.round(P().giveUp / 1000)} s = muted` : '');
       }
     }
     if (phase === 'capture' && running) small = 'Listening…';
@@ -475,7 +561,11 @@ const CleanCheck = (() => {
       li.textContent = p;
       listEl.appendChild(li);
     });
-    noteEl.hidden = !(showFaintNote && settings.mode === 'strum');
+    noteEl.hidden = !(showFaintNote && settings.mode === 'strum') || !!spot;
+    spotBtn.hidden = !(running && !spot && spotOffer.length && !P().spot);
+    if (!spotBtn.hidden) {
+      spotBtn.textContent = `Check hidden strings (${spotOffer.map((i) => (NAMES[i] === 'e' ? 'high e' : NAMES[i])).join(', ')})`;
+    }
 
     btn.textContent = running ? 'Stop' : phase === 'done' ? 'Check again' : 'Start';
     btn.classList.toggle('listening', running);
@@ -496,7 +586,7 @@ const CleanCheck = (() => {
     const NUT = 46, FRET = 40, FRETS = 5;
     const Y = (f) => NUT + (f - 0.5) * FRET;
     const parts = [];
-    const todo = running && settings.mode === 'string' && !identifying && shape ? status.findIndex((s) => s === null) : -1;
+    const todo = running && (settings.mode === 'string' || (spot && !settleUntil)) && !identifying && shape ? status.findIndex((s) => s === null) : -1;
 
     for (let f = 0; f <= FRETS; f++) {
       const y = NUT + f * FRET;
