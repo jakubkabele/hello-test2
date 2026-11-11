@@ -1,10 +1,9 @@
 // Shared audio tools: microphone access + YIN pitch detection.
-// Used by the tuner and by the clean chord check.
+// Used by the tuner and the clean chord check (chord hearing is in chords.js).
 
 const Sound = (() => {
   const MIN_FREQ = 60;    // lowest pitch we look for (Hz)
   const MAX_FREQ = 1000;  // highest pitch we look for (Hz)
-  const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
   // Open strings, low E → high e
   const OPEN_STRINGS = [82.41, 110.0, 146.83, 196.0, 246.94, 329.63];
@@ -15,7 +14,8 @@ const Sound = (() => {
 
   // ---------- Microphone ----------
   // Must be called from a tap (phones block audio otherwise).
-  async function openMic() {
+  // size = how much recent sound we keep (4096 ≈ 0.09 s, 32768 ≈ 0.7 s).
+  async function openMic(size = 4096) {
     ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
     if (ctx.state === 'suspended') await ctx.resume();
     closeMic();
@@ -29,7 +29,7 @@ const Sound = (() => {
     });
     const source = ctx.createMediaStreamSource(stream);
     const analyser = ctx.createAnalyser();
-    analyser.fftSize = 4096;
+    analyser.fftSize = size;
     source.connect(analyser);
     return { analyser, sampleRate: ctx.sampleRate, buffer: new Float32Array(analyser.fftSize) };
   }
@@ -94,19 +94,6 @@ const Sound = (() => {
     return yinPick(yinCurve(buf, sampleRate), sampleRate, threshold);
   }
 
-  // How strongly is one SPECIFIC note present? Looks at the curve only around
-  // the expected period (±cents). Returns the best value (lower = more present).
-  // Works even while other strings are still ringing.
-  function presenceOf(d, sampleRate, freq, cents = 40) {
-    const lo = Math.floor(sampleRate / (freq * Math.pow(2, cents / 1200)));
-    const hi = Math.ceil(sampleRate / (freq * Math.pow(2, -cents / 1200)));
-    let best = 1;
-    for (let t = Math.max(1, lo); t <= Math.min(hi, d.length - 2); t++) {
-      if (d[t] < best) best = d[t];
-    }
-    return best;
-  }
-
   // ---------- Helpers ----------
   function rms(buf, from = 0) {
     let sum = 0;
@@ -124,18 +111,9 @@ const Sound = (() => {
     return Math.sqrt(sum / (buf.length - from));
   }
 
-  function noteName(freq) {
-    const midi = Math.round(69 + 12 * Math.log2(freq / 440));
-    return NOTE_NAMES[((midi % 12) + 12) % 12];
-  }
-
-  function centsBetween(f, ref) {
-    return 1200 * Math.log2(f / ref);
-  }
-
   return {
     OPEN_STRINGS, openMic, closeMic,
-    yin, yinCurve, yinPick, presenceOf,
-    rms, brightness, noteName, centsBetween,
+    yin, yinCurve, yinPick,
+    rms, brightness,
   };
 })();

@@ -367,6 +367,7 @@ button { font: inherit; }
 
 /* ================= Clean chord check ================= */
 .chips {
+  position: relative;
   display: flex;
   gap: 8px;
   margin: 0 -24px;
@@ -395,17 +396,50 @@ button { font: inherit; }
   border-style: solid;
 }
 
+.segs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.seg {
+  display: flex;
+  padding: 3px;
+  background: var(--surface);
+  border: 1px solid var(--dim);
+  border-radius: 12px;
+}
+
+.seg button {
+  flex: 1;
+  height: 34px;
+  font-size: 0.9rem;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.seg button.active {
+  color: var(--text);
+  background: var(--dim);
+}
+
 .cc-name {
-  margin-top: 20px;
+  margin-top: 12px;
   text-align: center;
   font-size: 2.6rem;
   font-weight: 300;
 }
 
+.cc-name.dim { color: var(--dim); }
+
 .cc-diagram {
   display: block;
   width: 100%;
-  max-width: 250px;
+  max-width: 220px;
   margin: 4px auto 0;
 }
 .cc-diagram .fret   { stroke: var(--dim); stroke-width: 1.5; }
@@ -423,6 +457,7 @@ button { font: inherit; }
 .cc-diagram .st-warn  { fill: var(--amber); }
 .cc-diagram .st-muted { fill: var(--red); }
 .cc-diagram .st-skip  { fill: var(--dim); }
+.cc-diagram .st-clean.faint { opacity: 0.4; }
 .cc-diagram .st-todo  { fill: var(--dim); }
 .cc-diagram .st-current { fill: none; stroke: var(--green); stroke-width: 2; }
 .cc-diagram .st-current.hearing { fill: var(--green); }
@@ -430,7 +465,7 @@ button { font: inherit; }
 .cc-text {
   flex: 1;
   min-height: 96px;
-  padding: 12px 0 16px;
+  padding: 8px 0 16px;
   text-align: center;
 }
 .cc-prompt {
@@ -441,5 +476,34 @@ button { font: inherit; }
 .cc-sub {
   margin: 6px 0 0;
   font-size: 0.9rem;
+  color: var(--muted);
+}
+.cc-problems {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+.cc-problems li {
+  padding: 8px 0 8px 18px;
+  position: relative;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  border-top: 1px solid var(--dim);
+}
+.cc-problems li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 15px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--amber);
+}
+.cc-note {
+  margin: 12px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
   color: var(--muted);
 }

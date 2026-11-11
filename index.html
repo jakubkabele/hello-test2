@@ -57,12 +57,24 @@
 
     <!-- ========== Clean chord check ========== -->
     <section class="screen cc" data-screen="clean-check">
+      <div class="segs">
+        <div class="seg">
+          <button data-cc-mode="strum">Strum</button>
+          <button data-cc-mode="string">String by string</button>
+        </div>
+        <div class="seg">
+          <button data-cc-pick="auto">Auto chord</button>
+          <button data-cc-pick="manual">Pick chord</button>
+        </div>
+      </div>
       <div class="chips"></div>
       <div class="cc-name"></div>
       <svg class="cc-diagram" viewBox="0 0 240 320" role="img" aria-label="Chord diagram"></svg>
       <div class="cc-text" aria-live="polite">
         <p class="cc-prompt"></p>
         <p class="cc-sub"></p>
+        <ul class="cc-problems"></ul>
+        <p class="cc-note" hidden>Faded ✓ = same note as a lower string (an octave up), so a strum can’t fully check it. Use String by string to be sure.</p>
       </div>
       <button class="start cc-start">Start</button>
       <p class="error" hidden></p>
@@ -105,6 +117,7 @@
   <script src="store.js"></script>
   <script src="audio.js"></script>
   <script src="tuner.js"></script>
+  <script src="chords.js"></script>
   <script src="cleancheck.js"></script>
   <script src="app.js"></script>
 </body>
