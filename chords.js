@@ -214,6 +214,19 @@ const Chords = (() => {
     return h;
   }
 
+  // What's NEW in a strum played over something still ringing: the sound
+  // after it minus the sound just before it (scaled to the same length).
+  function hearNew(before, after, sampleRate) {
+    const a = spectrum(before, sampleRate);
+    const b = spectrum(after, sampleRate);
+    const scale = Math.pow(after.length / before.length, 2);
+    const diff = new Float64Array(NB);
+    for (let i = 0; i < NB; i++) diff[i] = Math.max(b[i] - a[i] * scale, 0);
+    const h = notes(compress(diff));
+    h.flatness = b.flatness;
+    return h;
+  }
+
   // ---------- Single plucks (string by string) ----------
   // What sound is NEW after a pluck? (After minus before: strings that were
   // already ringing cancel out, only the fresh string is left.)
@@ -362,7 +375,7 @@ const Chords = (() => {
 
   return {
     LIBRARY, STRING_NAMES, OPEN_MIDI,
-    hear, newSound, whichNote, recognize, fit, check, noteName,
+    hear, hearNew, newSound, whichNote, recognize, fit, check, noteName,
   };
 })();
 

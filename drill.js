@@ -315,7 +315,12 @@ const Drill = (() => {
       if (job.kind === 'strum') {
         const buf = mic.buffer.subarray(mic.buffer.length - job.W);
         const k = job.seg;
-        const c = judge(buf, shapes[k % 2], k > 0 ? shapes[(k + 1) % 2] : null);
+        let c = judge(buf, shapes[k % 2], k > 0 ? shapes[(k + 1) % 2] : null);
+        // Not it? Maybe the old chord was still ringing underneath — judge only the new sound.
+        if ((c.v === 'prev' || c.v === 'wrong') && job.before && Sound.rms(job.before) > Sound.rms(buf) * 0.3) {
+          const n = judge(buf, shapes[k % 2], k > 0 ? shapes[(k + 1) % 2] : null, job.before);
+          if (n.v === 'ok' || n.v === 'messy') c = n;
+        }
         c.err = job.err;
         round.results[k].cands.push(c);
         if (c.played) round.lastPlayedSeg = Math.max(round.lastPlayedSeg, k);
@@ -353,15 +358,22 @@ const Drill = (() => {
     const k = baseSeg + Math.round((played - roundStart) / segLen);
     if (k < baseSeg || k >= round.nSeg || round.results[k].final) return; // count-in or already judged
     const err = played - segStart(k);
-    jobs.push({ kind: 'strum', seg: k, err, W: winW, at: t + 0.05 + winW / mic.sampleRate });
+    // Keep the sound from just before the strum (to subtract what was still ringing).
+    const buf = mic.buffer, sr = mic.sampleRate;
+    const onsetIdx = buf.length - Math.round((now - t) * sr);
+    const Wb = onsetIdx >= 16384 ? 16384 : 8192;
+    const before = onsetIdx >= Wb ? buf.slice(onsetIdx - Wb, onsetIdx) : null;
+    jobs.push({ kind: 'strum', seg: k, err, W: winW, before, at: t + 0.05 + winW / sr });
     sortJobs();
   }
 
   // Is this sound the target chord (and not the previous one / something else)?
-  function judge(buf, target, prev) {
+  // With `before`: judge only what's new since the strum (old chord still ringing);
+  // then only a clearly wrong fret counts — shared strings can't be checked that way.
+  function judge(buf, target, prev, before = null) {
     const P = Settings.profile();
     if (Sound.rms(buf) < 0.003) return { v: 'silent' };
-    const h = Chords.hear(buf, mic.sampleRate);
+    const h = before ? Chords.hearNew(before, buf, mic.sampleRate) : Chords.hear(buf, mic.sampleRate);
     if (h.flatness > 0.05) return { v: 'noise' };
     const fT = Chords.fit(h, target);
     const fP = prev ? Chords.fit(h, prev) : -9;
@@ -374,6 +386,10 @@ const Drill = (() => {
       return { v: still ? 'prev' : 'wrong', heard: top.score >= 0.25 ? top.shape.name : '', played };
     }
     const c = Chords.check(h, target, P.chord);
+    if (before) {
+      const wrongFret = c.strings.find((s) => s.status === 'wrong');
+      return wrongFret && P.drill.mistakes < 1 ? { v: 'messy', detail: c.problems[0].split(' — ')[0], played: true } : { v: 'ok', played: true };
+    }
     const mistakes = c.strings.filter((s) => ['muted', 'wrong', 'extra'].includes(s.status)).length;
     const quiet = c.strings.filter((s) => s.status === 'weak').length;
     if (mistakes <= P.drill.mistakes && quiet <= P.drill.quiet) return { v: 'ok', played: true };
