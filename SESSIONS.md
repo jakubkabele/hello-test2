@@ -61,7 +61,7 @@ Causes found: (1) the app ignored phone audio delay (click plays late, mic hears
 Built:
 - `timing.js`: strum-start detection (exact onset, ring check rejects clicks/knocks) + **calibration** (strum on 8 clicks → phone delay saved; redo from drill setup or Settings).
 - Drill judges each strum: timing vs beat → clean / early / late with ms; chord must be the best (or near-best, per level `rank`) of all 31 shapes → else "wrong chord" (open strings fail at every level). Relaxed now forgives 1 string slip, not a different chord.
-- Beat guide: filling bar + 4·3·2·1·STRUM (shifted by output latency to match the heard click), timing line with the on-time zone and where your strum landed, one-line "how it's judged".
+- Beat guide: filling bar + big 4·3·2·1·STRUM + beat lights "3 · 2 · 1 · ●" where the big green dot (labelled with the next chord) flashes on the strum beat — same lights on the calibration screen (shifted by output latency to match the heard click). Fixed: the big counter was writing into the hidden calibration screen. Timing line with the on-time zone and where your strum landed, one-line "how it's judged".
 - Summary: average timing ("you tend to strum 120 ms late"), early / late / wrong / missed counts.
 - Tests (fake guitar, 120 ms mic delay): on time 14/14 clean (−18 ms); 200 ms early → 14 early (≈197 ms); 300 ms late → 14 late (≈318 ms).
 

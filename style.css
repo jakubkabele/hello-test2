@@ -831,3 +831,25 @@ button { font: inherit; }
 .dr-cal-status.ok { color: var(--green); }
 .dr-cal-status.bad { color: var(--red); }
 .dr-cal-skip { margin: 14px auto 0; display: block; color: var(--text); background: transparent; cursor: pointer; }
+
+/* Beat lights: 3 · 2 · 1 · ● (green dot = strum now) */
+.dr-lights { display: flex; justify-content: center; align-items: center; gap: 14px; margin-top: 14px; min-height: 64px; }
+.dr-lights i {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-style: normal; font-size: 1rem; color: var(--muted);
+  border: 2px solid var(--dim);
+}
+.dr-lights i.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+.dr-lights b {
+  width: 64px; height: 64px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.25rem; font-weight: 600; color: var(--green);
+  border: 3px solid var(--green); background: rgba(127, 207, 149, 0.08);
+}
+.dr-lights b.long { font-size: 0.7rem; letter-spacing: 0.06em; }
+.dr-lights b.on {
+  background: var(--green); color: var(--bg); transform: scale(1.12);
+  box-shadow: 0 0 24px rgba(127, 207, 149, 0.6);
+}
+.dr-cal-lights { margin: 4px 0 18px; }

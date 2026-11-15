@@ -243,7 +243,7 @@ const Drill = (() => {
     showTimingMark(null);
     $('.dr-status').textContent = '';
     $('.dr-howto').textContent =
-      `Strum once when it says STRUM. ✓ = right chord within ±${Settings.profile().drill.timing} ms of the beat.`;
+      `Strum once when the big green dot flashes. ✓ = right chord within ±${Settings.profile().drill.timing} ms of it.`;
     cancelAnimationFrame(rafId);
     loop();
   }
@@ -489,7 +489,7 @@ const Drill = (() => {
     }
 
     // Big beat counter: 4 · 3 · 2 · 1 · STRUM
-    const beat = $('.dr-beat'), fill = $('.dr-bar i');
+    const beat = $('.dr-run .dr-beat'), fill = $('.dr-bar i');
     let label, strum = false, frac;
     if (v < firstBeat) { label = ''; frac = 0; }
     else if (inCountIn) {
@@ -505,6 +505,17 @@ const Drill = (() => {
     if (beat.textContent !== label) beat.textContent = label;
     beat.classList.toggle('strum', strum);
     fill.style.width = `${Math.min(100, frac * 100)}%`;
+    // Beat lights: 3 · 2 · 1 · ● — the green dot is the beat to strum on.
+    const lights = $('.dr-run .dr-lights');
+    if (v < firstBeat) drawLights(lights, COUNT_IN, null, pair[baseSeg % 2]);
+    else if (inCountIn) drawLights(lights, COUNT_IN, Math.ceil(-pos), pair[baseSeg % 2]);
+    else {
+      const inSeg = pos - Math.floor(pos / round.beats) * round.beats;
+      const b = Math.floor(inSeg);
+      // On the strum beat the dot shows the chord you're landing; after it, the next one.
+      const next = b === 0 && inSeg < 0.6 ? pair[seg % 2] : pair[(seg + 1) % 2];
+      drawLights(lights, round.beats - 1, b === 0 ? (inSeg < 0.6 ? 'strum' : null) : round.beats - b, next);
+    }
 
     if (inCountIn) {
       const first = pair[baseSeg % 2];
@@ -526,6 +537,26 @@ const Drill = (() => {
     dot.hidden = false;
     dot.style.left = `${50 + x * 50}%`;
     dot.className = 'dr-tl-dot ' + (Math.abs(f.err) <= tol ? 'ok' : 'meh');
+  }
+
+  // A row of beat lights: numbered lights counting down (n … 1), then a big green dot.
+  // `active` = the number to light, 'strum' to flash the green dot, or null.
+  // `label` = text in the green dot (the chord to strum next).
+  function drawLights(el, n, active, label = 'STRUM') {
+    if (el.dataset.n !== String(n) || el.dataset.label !== label) {
+      el.dataset.n = String(n);
+      el.dataset.label = label;
+      el.dataset.active = '';
+      let h = '';
+      for (let i = n; i >= 1; i--) h += `<i data-n="${i}">${i}</i>`;
+      el.innerHTML = h + `<b class="${label.length > 3 ? 'long' : ''}"></b>`;
+      el.querySelector('b').textContent = label;
+    }
+    const key = String(active);
+    if (el.dataset.active === key) return;
+    el.dataset.active = key;
+    el.querySelectorAll('i').forEach((x) => x.classList.toggle('on', x.dataset.n === key));
+    el.querySelector('b').classList.toggle('on', active === 'strum');
   }
 
   function showTime(left) {
@@ -573,6 +604,7 @@ const Drill = (() => {
     calEl.dataset.then = thenDrill ? '1' : '';
     const cur = Timing.offset();
     $('.dr-cal-beat').textContent = '';
+    drawLights($('.dr-cal-lights'), COUNT_IN, null);
     $('.dr-cal-status').textContent = cur === null
       ? 'Not calibrated yet.'
       : `Current delay: ${Math.round(cur * 1000)} ms.`;
@@ -613,6 +645,9 @@ const Drill = (() => {
     const b = Math.floor(pos);
     beatEl.textContent = pos < 0 ? '' : b < COUNT_IN ? String(COUNT_IN - b) : b < COUNT_IN + CAL_CLICKS ? 'STRUM' : '';
     beatEl.classList.toggle('strum', b >= COUNT_IN && pos - b < 0.45);
+    // Same lights as the drill: 4 · 3 · 2 · 1, then the green dot on every strum click.
+    const lit = pos < 0 || b >= COUNT_IN + CAL_CLICKS ? null : b < COUNT_IN ? COUNT_IN - b : pos - b < 0.6 ? 'strum' : null;
+    drawLights($('.dr-cal-lights'), b < COUNT_IN ? COUNT_IN : 0, lit);
     if (b >= COUNT_IN) $('.dr-cal-status').textContent = `Strum on each click · heard ${c.hits.length} of ${CAL_CLICKS}`;
 
     if (now > c.firstBeat + (COUNT_IN + CAL_CLICKS) * c.beatDur + 0.6) { endCalibration(); return; }
