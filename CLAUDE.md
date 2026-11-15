@@ -30,15 +30,17 @@ Started as a pipeline test (Claude Code → GitHub → Vercel → phone); now th
 | `store.js` | Exercise log in localStorage (`practice.log.v1`), grouped by day |
 | `settings.js` | Settings screen + listening **sensitivity 1–5** profiles (`Settings.profile()`), key `practice.settings.v1` |
 | `audio.js` | `Sound`: mic open/close (`openMic(size)`), audio clock, YIN pitch detection, rms |
+| `pause.js` | `Pause`: shared break logic — 20 s without playing = paused (`AFTER_MS`), `playDetector()` hears you start again (loud + rings ≥150 ms) |
 | `tuner.js` | Tuner (v1), reads `Settings.profile().tuner` |
 | `chords.js` | `Chords`: chord-hearing engine — FFT → semitone bands → note decomposition (note + harmonics model) → chord recognition by fitting 31 known shapes → per-string check; single-pluck matching (`newSound`/`whichNote`) |
 | `cleancheck.js` | Clean chord check: Strum / String-by-string × Auto / Pick chord, hidden-string spot check |
-| `drill.js` | Chord change drill: pairs, metronome, 1-minute rounds, clean changes/min |
+| `drill.js` | Chord change drill: pairs, metronome, 1-minute rounds, clean changes/min; auto-pause + resume, unfinished round kept in `practice.drill.unfinished`, partial rounds logged with `score.partial` |
 | `style.css` | All styles |
 
 ### Conventions
 - Every listening exercise reads its thresholds from `Settings.profile()` (add a block per new exercise to all 5 levels; level 3 = default behavior).
 - Every finished exercise writes one entry via `Store.add({ exercise, title, chords, score, summary, activeSec })`.
+- Breaks: every listening exercise treats 20 s without playing (`Pause.AFTER_MS`) as a break — clock stops, the screen says "Paused". Fixed, not per sensitivity.
 - Known limit: in a strum, a string an octave above a lower string (e.g. D string in Em) can't be verified — handled by the hidden-string spot check, don't try to "fix" it in the strum analysis.
 
 ## Deploy
@@ -55,6 +57,6 @@ Started as a pipeline test (Claude Code → GitHub → Vercel → phone); now th
 1. ✅ Home + navigation + log storage
 2. ✅ Clean chord check (+ strum mode, auto chord, sensitivity, spot check)
 3. ✅ Chord change drill
-4. ⏭ Auto-pause / break handling
-5. Find the note + Rhythm
+4. ✅ Auto-pause / break handling
+5. ⏭ Find the note + Rhythm
 6. Today's session (adaptive rules) + Markdown export

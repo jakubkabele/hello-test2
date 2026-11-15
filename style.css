@@ -789,3 +789,17 @@ button { font: inherit; }
 .dr-details { margin-top: 20px; }
 .dr-next { margin: 18px 0 24px; color: var(--green); }
 .dr-back { margin: 14px auto 0; display: block; color: var(--text); background: transparent; cursor: pointer; }
+
+/* Paused round */
+.dr-pause { display: none; text-align: center; padding-top: 32px; }
+.dr-run.is-paused .dr-pause { display: block; }
+.dr-run.is-paused .dr-chords,
+.dr-run.is-paused .dr-beatdots,
+.dr-run.is-paused .dr-status,
+.dr-run.is-paused .dr-stop { display: none; }
+.dr-pause-title { font-size: 2rem; font-weight: 300; color: var(--amber); }
+.dr-pause-text { margin: 12px 0 0; }
+.dr-pause-progress { margin: 8px 0 28px; color: var(--muted); font-size: 0.9rem; }
+.dr-end, .dr-discard { margin: 14px auto 0; display: block; color: var(--text); background: transparent; cursor: pointer; }
+.dr-discard { color: var(--muted); }
+.paused-note { color: var(--amber); }

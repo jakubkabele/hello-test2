@@ -74,6 +74,7 @@ backBtn.addEventListener('click', () => {
 function renderHome() {
   const n = Store.all().length;
   document.getElementById('log-count').textContent = n ? String(n) : '';
+  document.getElementById('drill-paused').hidden = !Drill.hasPaused();
 }
 
 // ---------- Log ----------

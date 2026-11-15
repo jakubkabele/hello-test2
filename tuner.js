@@ -44,6 +44,7 @@ const Tuner = (() => {
   let goodFrames = 0;
   let badFrames = 999;
   let silent = true;
+  let silentSince = 0;          // when the last note faded (for the "paused" hint)
   let shownCents = 0;           // smoothed needle position
   let targetCents = 0;
 
@@ -78,6 +79,7 @@ const Tuner = (() => {
       running = true;
       activeMs = 0;
       lastFrame = performance.now();
+      silentSince = lastFrame;
       tunedStrings.clear();
       startBtn.textContent = 'Stop';
       startBtn.classList.add('listening');
@@ -100,6 +102,7 @@ const Tuner = (() => {
     badFrames = 999;
     shownCents = 0;
     needleEl.style.transform = '';
+    if (hzEl.dataset.paused) { delete hzEl.dataset.paused; hzEl.innerHTML = '&nbsp;'; }
     startBtn.textContent = 'Start listening';
     startBtn.classList.remove('listening');
     showSilence();
@@ -146,6 +149,11 @@ const Tuner = (() => {
     }
 
     if (!silent) activeMs += dt;
+    // Break: 20 s without a note → say so (the active-time clock is already stopped).
+    if (silent && silentSince && now - silentSince > Pause.AFTER_MS && !hzEl.dataset.paused) {
+      hzEl.dataset.paused = '1';
+      hzEl.textContent = 'Paused — play a string to carry on';
+    }
 
     // Ease the needle toward its target so it glides instead of jumping.
     shownCents += (targetCents - shownCents) * P().ease;
@@ -162,6 +170,7 @@ const Tuner = (() => {
     const cents = 1200 * Math.log2(freq / target.freq);
 
     silent = false;
+    delete hzEl.dataset.paused;
     targetCents = cents;
 
     noteEl.textContent = target.name;
@@ -181,6 +190,7 @@ const Tuner = (() => {
   function showSilence() {
     if (silent && noteEl.textContent === '—') return;
     silent = true;
+    silentSince = performance.now();
     targetCents = 0;
     noteEl.textContent = '—';
     noteEl.classList.add('silent');

@@ -39,11 +39,19 @@
 - Log lives only in this browser on this phone (clearing site data erases it). Markdown export comes in step 6.
 - Thresholds were tuned on synthetic sounds; expect real-world calibration from Kuba's reports.
 
+## 2026-11-15 — v2 step 4: breaks / auto-pause
+
+### What we built
+- `pause.js` (`Pause`): one shared rule — **20 s without playing = paused**; `playDetector()` hears you start again (sound above room noise that keeps ringing ≥150 ms, so knocks don't count).
+- **Change drill:** after 20 s of silence the round pauses (metronome + clock stop). The silent changes since you last played are thrown away, not counted as missed. Play any chord (or tap Resume) → 4-beat count-in, continues from the next change. Stop button is now **Pause**; paused screen offers Resume / End round & save / Discard.
+- Unfinished round is saved on the phone (`practice.drill.unfinished`): leaving the screen, locking the phone or closing the app pauses it; Home shows "paused" next to the drill. Older than 3 h → saved as a partial round automatically.
+- Partial rounds are logged ("… · partial, 35 s"), scored on played time only, and don't change tempo or count as "last time"/best.
+- If the round ends while you've been silent ≥ 8 s, it pauses instead of counting the silence.
+- Clean check + tuner: show "Paused" after 20 s of silence (their active-time clocks already only count playing).
+
+### Bugs / open issues
+- Untested on a real phone: does the speaker click ever count as "playing" and block the pause? (In tests a click + room noise is rejected as noise.)
+- Talking near the phone while paused can resume the drill (speech rings like a note). It just pauses again after 20 s.
+
 ## Next step
-**v2 step 4 — Auto-pause / break handling** (blueprint v2, "Breaks"):
-1. Shared pause logic in `audio.js` (or a small `pause.js`): "no playing heard for ~20 s" → paused; resumes on the next strum/pluck or a tap.
-2. Chord change drill: on pause, stop the round clock and metronome, don't count missed changes during silence, show a calm "Paused — play to resume" screen; resume with a count-in. Only active playing time counts.
-3. Clean check and tuner: pause the active-time counter during silence (already partly there), show the same paused state.
-4. Leaving the screen or locking the phone keeps the session: save an unfinished drill round's progress so it can be resumed (or logged as partial) instead of discarded.
-5. Add the 20 s pause threshold to each sensitivity level only if it helps (probably not — keep it fixed).
-6. Test with synthetic audio: a drill round with a 30 s silent gap in the middle must score the same as without it.
+**v2 step 5 — Find the note + Rhythm** (blueprint v2, exercises 3 and 4). Each new exercise: settings block per sensitivity level, `Store.add` entry, use `Pause` for breaks.

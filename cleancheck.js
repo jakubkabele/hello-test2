@@ -57,6 +57,7 @@ const CleanCheck = (() => {
   let captureEnd = 0, captureKind = '', before = null, peak = 0;
   let baseRms = 0, baseBright = 0, ignoreUntil = 0;
   let lastFrame = 0, lastEvent = 0, activeMs = 0;
+  let startedAt = 0, idle = false; // idle = nothing heard for 20 s (shown as paused)
   let settleUntil = 0, settleLevel = 0; // wait for a strum to fade before plucks
   let lastHeard = null;    // chord shape recognized last time (for stickiness)
 
@@ -196,6 +197,8 @@ const CleanCheck = (() => {
     lastFrame = performance.now();
     ignoreUntil = lastFrame + 400; // ignore the mic switching on
     lastEvent = 0;
+    startedAt = lastFrame;
+    idle = false;
     render();
     loop();
   }
@@ -219,6 +222,9 @@ const CleanCheck = (() => {
     const dt = Math.min(now - lastFrame, 250);
     lastFrame = now;
     if (lastEvent && now - lastEvent < 10000) activeMs += dt;
+    // Break: nothing heard for 20 s → show "paused" (the active-time clock already stopped).
+    const nowIdle = phase === 'listen' && now - Math.max(lastEvent, startedAt) > Pause.AFTER_MS;
+    if (nowIdle !== idle) { idle = nowIdle; render(); }
 
     const buf = mic.buffer;
     mic.analyser.getFloatTimeDomainData(buf);
@@ -552,7 +558,12 @@ const CleanCheck = (() => {
       }
     }
     if (phase === 'capture' && running) small = 'Listening…';
+    if (running && idle && phase === 'listen' && !settleUntil) {
+      big = 'Paused';
+      small = 'Play when you’re back — the clock is stopped.';
+    }
     promptEl.textContent = big;
+    promptEl.classList.toggle('paused-note', running && idle && big === 'Paused');
     subEl.textContent = small;
 
     listEl.innerHTML = '';
