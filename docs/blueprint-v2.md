@@ -48,6 +48,7 @@
   2. **open → barre** (C → F, D → Bm, Am → F …)
   3. **barre → barre** (F → Bm, F → G barre …) — new for me, start slow
 - Note: strum recognition only has to be "good enough" — a tolerant match, not perfect.
+- **Two modes:** *Clean changes* (on the beat, judged per change — built) and *Fast changes* (free tempo, count how many switches per minute, forgiving on string quality, must detect each change quickly — to do).
 
 ### 3. Find the note
 - App says a note ("G"), I find and play it anywhere on the fretboard.

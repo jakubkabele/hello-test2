@@ -186,6 +186,64 @@
       </div>
     </section>
 
+    <!-- ========== Find the note ========== -->
+    <section class="screen fn" data-screen="find-note">
+      <div class="segs">
+        <div class="seg">
+          <button data-fn-notes="natural">Natural notes</button>
+          <button data-fn-notes="all">All 12</button>
+        </div>
+      </div>
+      <div class="chips fn-strings"></div>
+      <div class="fn-progress"></div>
+      <div class="fn-note dim">—</div>
+      <p class="fn-where"></p>
+      <p class="fn-heard" aria-live="polite"></p>
+      <ul class="cc-problems fn-results"></ul>
+      <button class="start fn-start">Start</button>
+      <button class="link-btn fn-skip" hidden>Skip this note</button>
+      <p class="error" hidden></p>
+    </section>
+
+    <!-- ========== Rhythm ========== -->
+    <section class="screen rh" data-screen="rhythm">
+      <div class="rh-setup">
+        <div class="rh-patterns"></div>
+        <h2 class="section">Tempo</h2>
+        <div class="dr-tempo">
+          <button class="rh-minus" aria-label="Slower">−</button>
+          <span><span class="rh-bpm">70</span> BPM</span>
+          <button class="rh-plus" aria-label="Faster">+</button>
+        </div>
+        <p class="rh-hint">Hold any chord (or mute the strings) and strum the pattern with the click. ↓ = down-strum, ↑ = up-strum.</p>
+        <div class="dr-calrow"><span class="rh-cal-info"></span><button class="link-btn rh-recal"></button></div>
+        <button class="start rh-start">Start · 1 minute</button>
+        <p class="error" hidden></p>
+      </div>
+      <div class="rh-run" hidden>
+        <div class="dr-top"><span class="rh-time">1:00</span><span class="rh-count"></span></div>
+        <div class="rh-big"></div>
+        <div class="rh-slots"></div>
+        <div class="rh-counts"></div>
+        <div class="dr-tl" aria-hidden="true">
+          <span class="dr-tl-zone"></span><span class="dr-tl-line"></span><span class="dr-tl-dot" hidden></span>
+        </div>
+        <div class="dr-tl-legend"><span>early</span><span>on the beat</span><span>late</span></div>
+        <p class="dr-status rh-status"></p>
+        <p class="dr-howto rh-howto"></p>
+        <button class="start listening rh-stop">Stop</button>
+      </div>
+      <div class="rh-summary" hidden>
+        <div class="dr-big rh-sum-big"></div>
+        <div class="dr-unit">on time</div>
+        <p class="dr-pairname rh-sum-name"></p>
+        <p class="dr-compare rh-sum-compare"></p>
+        <ul class="cc-problems rh-sum-details"></ul>
+        <button class="start rh-again">Go again</button>
+        <button class="link-btn dr-back rh-back">Change pattern or tempo</button>
+      </div>
+    </section>
+
     <!-- ========== Tuner (v1) ========== -->
     <section class="screen tuner" data-screen="tuner">
       <section class="readout" aria-live="polite">
@@ -229,6 +287,8 @@
   <script src="chords.js"></script>
   <script src="cleancheck.js"></script>
   <script src="drill.js"></script>
+  <script src="findnote.js"></script>
+  <script src="rhythm.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

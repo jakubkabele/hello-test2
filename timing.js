@@ -34,7 +34,9 @@ const Timing = (() => {
 
   // Feed the mic buffer every frame with the audio-clock time; returns the time
   // a strum started (once it's confirmed as ringing), otherwise null.
-  function strumDetector(sampleRate) {
+  // opts.rise = how much louder than before a strum must leave the sound (lower for fast strumming).
+  function strumDetector(sampleRate, opts = {}) {
+    const rise = opts.rise || 1.4;
     let baseRms = 0, baseBright = 0, pend = null, quietUntil = 0;
     return {
       reset() { baseRms = 0; baseBright = 0; pend = null; quietUntil = 0; },
@@ -48,7 +50,7 @@ const Timing = (() => {
           if (now - pend.t >= RING_SEC) {
             // Still ringing, and clearly louder than before it started (a click on top
             // of a ringing chord fades back to the old level → not a strum).
-            if (r >= pend.peak * 0.3 && r >= pend.before * 1.4 && r > MIN_LEVEL * 0.7) out = pend.t;
+            if (r >= pend.peak * 0.3 && r >= pend.before * rise && r > MIN_LEVEL * 0.7) out = pend.t;
             pend = null;
             quietUntil = now + 0.05;
             baseRms = r;               // the new ringing level is the new "before"

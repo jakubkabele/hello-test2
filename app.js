@@ -9,6 +9,8 @@
 //   #/today             Today's session (coming later)
 //   #/exercise/clean-check  Clean chord check
 //   #/exercise/change-drill Chord change drill
+//   #/exercise/find-note    Find the note
+//   #/exercise/rhythm       Rhythm
 //   #/exercise/<id>     Other exercises (coming later, one per build step)
 
 const ROUTES = {
@@ -20,8 +22,8 @@ const ROUTES = {
   'today':                   { screen: 'soon',  title: "Today's session",    soon: 'A guided session built from your log — coming in step 6.' },
   'exercise/clean-check':    { screen: 'clean-check', title: 'Clean chord check' },
   'exercise/change-drill':   { screen: 'change-drill', title: 'Chord change drill' },
-  'exercise/find-note':      { screen: 'soon',  title: 'Find the note',      soon: 'Find a note anywhere on the fretboard — coming in step 5.' },
-  'exercise/rhythm':         { screen: 'soon',  title: 'Rhythm',             soon: 'Strum with the metronome and check your timing — coming in step 5.' },
+  'exercise/find-note':      { screen: 'find-note', title: 'Find the note' },
+  'exercise/rhythm':         { screen: 'rhythm', title: 'Rhythm' },
 };
 
 const screens = document.querySelectorAll('.screen');
@@ -41,6 +43,8 @@ function render() {
   if (route.screen !== 'tuner') Tuner.stop();
   if (route.screen !== CleanCheck.screen) CleanCheck.stop();
   if (route.screen !== Drill.screen) Drill.stop();
+  if (route.screen !== FindNote.screen) FindNote.stop();
+  if (route.screen !== Rhythm.screen) Rhythm.stop();
 
   screens.forEach((s) => (s.hidden = s.dataset.screen !== route.screen));
   titleEl.textContent = route.title;
@@ -53,6 +57,8 @@ function render() {
   if (route.screen === 'settings') Settings.render();
   if (route.screen === CleanCheck.screen) CleanCheck.show();
   if (route.screen === Drill.screen) Drill.show();
+  if (route.screen === FindNote.screen) FindNote.show();
+  if (route.screen === Rhythm.screen) Rhythm.show();
   if (route.screen === 'soon') document.getElementById('soon-text').textContent = route.soon;
 
   window.scrollTo(0, 0);

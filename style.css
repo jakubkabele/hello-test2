@@ -853,3 +853,64 @@ button { font: inherit; }
   box-shadow: 0 0 24px rgba(127, 207, 149, 0.6);
 }
 .dr-cal-lights { margin: 4px 0 18px; }
+
+/* ================= Find the note ================= */
+.fn-strings { margin-top: 10px; }
+.fn-progress { display: flex; justify-content: center; gap: 6px; margin: 22px 0 6px; min-height: 8px; }
+.fn-progress i { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
+.fn-progress i.now { background: var(--text); }
+.fn-progress i.ok { background: var(--green); }
+.fn-progress i.bad { background: var(--red); }
+.fn-note { text-align: center; font-size: 6rem; font-weight: 300; line-height: 1.1; margin-top: 18px; }
+.fn-note.dim { color: var(--dim); }
+.fn-note.fn-done { font-size: 4rem; color: var(--green); }
+.fn-note.fn-paused { font-size: 3rem; color: var(--amber); }
+.fn-where { text-align: center; color: var(--muted); margin: 4px 0 0; min-height: 1.4em; }
+.fn-heard { text-align: center; font-size: 1.15rem; min-height: 1.6em; margin: 22px 0 8px; }
+.fn-heard.ok { color: var(--green); }
+.fn-heard.meh { color: var(--amber); }
+.fn-results { margin: 6px 0 18px; }
+.fn .start { margin-top: auto; }
+.fn-skip { margin: 14px auto 0; display: block; color: var(--muted); background: transparent; cursor: pointer; }
+
+/* ================= Rhythm ================= */
+.rh-patterns { display: flex; flex-direction: column; }
+.rh-pattern {
+  display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; text-align: left;
+  padding: 14px 4px; background: none; border: none; border-bottom: 1px solid var(--dim);
+  color: var(--text); cursor: pointer;
+}
+.rh-pname { font-size: 1.05rem; }
+.rh-parrows { font-size: 1.05rem; letter-spacing: 0.04em; color: var(--muted); }
+.rh-phint { grid-column: 1 / -1; font-size: 0.85rem; color: var(--muted); }
+.rh-pattern.active .rh-pname, .rh-pattern.active .rh-parrows { color: var(--green); }
+.rh-hint { color: var(--muted); font-size: 0.9rem; line-height: 1.4; }
+.rh-start { margin-top: 20px; }
+.rh-run { display: flex; flex-direction: column; flex: 1; }
+.rh-big {
+  height: 110px; line-height: 110px; text-align: center; margin-top: 18px;
+  font-size: 5rem; font-weight: 300; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.rh-big.hit { color: var(--green); font-weight: 500; }
+.rh-run.is-paused .rh-big { color: var(--amber); font-size: 3rem; }
+.rh-slots { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; margin-top: 8px; }
+.rh-slot {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 10px 0 6px; border-radius: 10px; border: 2px solid var(--dim);
+}
+.rh-arrow { font-size: 1.5rem; line-height: 1; }
+.rh-cnt { font-size: 0.75rem; color: var(--muted); }
+.rh-slot.rest .rh-arrow { color: var(--dim); }
+.rh-slot.now { border-color: var(--text); }
+.rh-slot.flash { background: var(--green); border-color: var(--green); color: var(--bg); }
+.rh-slot.flash .rh-cnt { color: var(--bg); }
+.rh-slot[data-st="ok"] { border-color: var(--green); }
+.rh-slot[data-st="early"], .rh-slot[data-st="late"] { border-color: var(--amber); }
+.rh-slot[data-st="missed"] { border-color: var(--red); }
+.rh-counts { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 12px; margin-top: 16px; font-size: 0.85rem; }
+.rh-counts .ok { color: var(--green); }
+.rh-counts .meh { color: var(--amber); }
+.rh-counts .bad { color: var(--red); }
+.rh-run .dr-tl { margin-top: 18px; }
+.rh-stop { margin-top: auto; }
+.rh-summary { text-align: center; padding-top: 24px; }

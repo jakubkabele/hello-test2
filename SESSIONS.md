@@ -65,5 +65,9 @@ Built:
 - Summary: average timing ("you tend to strum 120 ms late"), early / late / wrong / missed counts.
 - Tests (fake guitar, 120 ms mic delay): on time 14/14 clean (−18 ms); 200 ms early → 14 early (≈197 ms); 300 ms late → 14 late (≈318 ms).
 
+### Kuba's feedback after the beat lights
+- Drill works; timing "still a little weird" (maybe him) — watch it, ask again after more practice.
+- **TODO — drill "Fast changes" mode:** a second drill type: no perfect-change judging, just count how many times you switch between the two chords per minute (no metronome / free tempo). More forgiving on string quality, but it must recognise a chord change *fast* (right after each strum). Score = changes per minute. (The classic "one-minute changes" exercise.)
+
 ## Next step
 **v2 step 5 — Find the note + Rhythm** (blueprint v2, exercises 3 and 4). Each new exercise: settings block per sensitivity level, `Store.add` entry, use `Pause` for breaks.

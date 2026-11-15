@@ -31,11 +31,13 @@ Started as a pipeline test (Claude Code → GitHub → Vercel → phone); now th
 | `settings.js` | Settings screen + listening **sensitivity 1–5** profiles (`Settings.profile()`), key `practice.settings.v1` |
 | `audio.js` | `Sound`: mic open/close (`openMic(size)`), audio clock, YIN pitch detection, rms |
 | `pause.js` | `Pause`: shared break logic — 20 s without playing = paused (`AFTER_MS`), `playDetector()` hears you start again (loud + rings ≥150 ms) |
-| `timing.js` | `Timing`: strum-start detector (`strumDetector()` → exact onset time, rejects clicks/knocks by ring check) + phone-delay calibration (`offset()`, key `practice.timing.v1`) |
+| `timing.js` | `Timing`: strum-start detector (`strumDetector()` → exact onset time, rejects clicks/knocks by ring check) + phone-delay calibration (`offset()`, key `practice.timing.v1`); calibration UI lives in the drill (`sessionStorage drill.calibrate = '<return hash>'` opens it from elsewhere) |
 | `tuner.js` | Tuner (v1), reads `Settings.profile().tuner` |
 | `chords.js` | `Chords`: chord-hearing engine — FFT → semitone bands → note decomposition (note + harmonics model) → chord recognition by fitting 31 known shapes → per-string check; single-pluck matching (`newSound`/`whichNote`) |
 | `cleancheck.js` | Clean chord check: Strum / String-by-string × Auto / Pick chord, hidden-string spot check |
 | `drill.js` | Chord change drill: pairs, metronome, beat guide (bar + 3·2·1·STRUM), 1-minute rounds, clean changes/min; per strum: timing vs beat (calibrated) + must be the best-matching chord of all shapes → clean / early / late / messy / wrong / missed; calibration screen; auto-pause + resume, unfinished round kept in `practice.drill.unfinished`, partial rounds logged with `score.partial` |
+| `findnote.js` | Find the note: random note (natural / all 12, any string or one string), YIN pitch → steady note → reaction time; 10-note rounds; any octave counts |
+| `rhythm.js` | Rhythm: 4 patterns on an 8-slot bar (1 & 2 & …), metronome, each strum (Timing, calibrated) matched to nearest slot → on time / early / late / extra, unplayed → missed; 1-min rounds; % on time, avg offset, steadiness |
 | `style.css` | All styles |
 
 ### Conventions
@@ -60,5 +62,5 @@ Started as a pipeline test (Claude Code → GitHub → Vercel → phone); now th
 2. ✅ Clean chord check (+ strum mode, auto chord, sensitivity, spot check)
 3. ✅ Chord change drill
 4. ✅ Auto-pause / break handling
-5. ⏭ Find the note + Rhythm
-6. Today's session (adaptive rules) + Markdown export
+5. ✅ Find the note + Rhythm
+6. ⏭ Today's session (adaptive rules) + Markdown export

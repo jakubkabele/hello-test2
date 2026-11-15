@@ -596,7 +596,9 @@ const Drill = (() => {
   $('.dr-cal-go').addEventListener('click', () => startCalibration());
   $('.dr-cal-skip').addEventListener('click', () => {
     const then = calEl.dataset.then === '1';
-    if (then) { calSkipped = true; newRound(); } else { view('setup'); renderSetup(); }
+    if (then) { calSkipped = true; newRound(); }
+    else if (calEl.dataset.return) { const to = calEl.dataset.return; calEl.dataset.return = ''; view('setup'); location.hash = to; }
+    else { view('setup'); renderSetup(); }
   });
 
   function openCalibration(thenDrill) {
@@ -849,7 +851,9 @@ const Drill = (() => {
   // ---------- Screen ----------
   function show() {
     let wantCal = false;
-    try { wantCal = sessionStorage.getItem('drill.calibrate') === '1'; sessionStorage.removeItem('drill.calibrate'); } catch {}
+    let from = '';
+    try { from = sessionStorage.getItem('drill.calibrate') || ''; wantCal = !!from; sessionStorage.removeItem('drill.calibrate'); } catch {}
+    calEl.dataset.return = from.startsWith('#') ? from : '';
     if (round && paused) { view('run'); renderPaused(); drawHistory(); return; }
     if (wantCal && !running) { openCalibration(false); return; }
     if (!running) {
