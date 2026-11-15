@@ -126,7 +126,7 @@ const Rhythm = (() => {
     totalBeats = COUNT_IN + (nBars - baseBar) * 4;
     hits.forEach((h) => { if (h.bar >= baseBar) { h.status = null; h.err = null; } h.t = barStart(h.bar) + h.slot * slotDur; });
     extras = extras.filter((e) => e.bar < baseBar);
-    strums = Timing.strumDetector(mic.sampleRate, { rise: 1.15 });
+    strums = Timing.strumDetector(mic.sampleRate);
     lastPlayedAt = roundStart;
     running = true;
     paused = false;

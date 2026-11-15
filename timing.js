@@ -4,8 +4,9 @@
 // • Strum start: every frame we look at the newest ~20 ms of sound. A strum
 //   starts with a sudden jump in loudness or in "brightness" (the sharp pick
 //   attack). We then find the exact moment of the jump inside the recent sound
-//   (to a few ms), and wait 150 ms: a real strum keeps ringing louder than
-//   before; a metronome click or a knock has already died away — ignored.
+//   (to a few ms). Then we check it's a real strum: ~70 ms later a strum's
+//   fresh strings are still bright (or at 150 ms still ringing louder than
+//   before); a metronome click or a knock has already died away — ignored.
 // • Phone delay: the phone plays the click a little after the app schedules it,
 //   and hears the guitar a little after you play. Calibration measures the total
 //   (you strum along with 8 clicks, we take the typical gap) and saves it, so
@@ -14,7 +15,8 @@
 const Timing = (() => {
   const KEY = 'practice.timing.v1';
   const MIN_LEVEL = 0.004;     // quieter than this isn't a strum
-  const RING_SEC = 0.15;       // a strum must still ring this long after it starts
+  const BRIGHT_SEC = 0.07;     // check the pick attack's brightness this long after the start
+  const RING_SEC = 0.15;       // …or that it still rings louder this long after
   const BLOCK = 128;           // samples per step when pinpointing the start
 
   // Saved phone delay in seconds, or null if never calibrated.
@@ -47,10 +49,14 @@ const Timing = (() => {
         let out = null;
         if (pend) {
           pend.peak = Math.max(pend.peak, r);
-          if (now - pend.t >= RING_SEC) {
-            // Still ringing, and clearly louder than before it started (a click on top
-            // of a ringing chord fades back to the old level → not a strum).
-            if (r >= pend.peak * 0.3 && r >= pend.before * rise && r > MIN_LEVEL * 0.7) out = pend.t;
+          const age = now - pend.t;
+          // A strum's bright pick attack is still there ~70 ms later (fresh strings);
+          // a click's is gone after ~30 ms. Works even for a soft up-strum over a loud ring.
+          const bright = age >= BRIGHT_SEC && br >= pend.beforeBr * 2 && r > MIN_LEVEL * 0.7;
+          // Backup at 150 ms: still ringing, and clearly louder than before it started.
+          const rings = age >= RING_SEC && r >= pend.peak * 0.3 && r >= pend.before * rise && r > MIN_LEVEL * 0.7;
+          if (bright || rings || age >= RING_SEC) {
+            if (bright || rings) out = pend.t;
             pend = null;
             quietUntil = now + 0.05;
             baseRms = r;               // the new ringing level is the new "before"
@@ -68,7 +74,7 @@ const Timing = (() => {
               for (let j = i; j < i + BLOCK; j++) s += buf[j] * buf[j];
               if (Math.sqrt(s / BLOCK) > lim) { at = i; break; }
             }
-            pend = { t: now - (N - at) / sampleRate, peak: r, before: baseRms };
+            pend = { t: now - (N - at) / sampleRate, peak: r, before: baseRms, beforeBr: baseBright };
           }
         }
         if (!pend) {
