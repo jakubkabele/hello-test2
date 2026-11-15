@@ -69,5 +69,21 @@ Built:
 - Drill works; timing "still a little weird" (maybe him) — watch it, ask again after more practice.
 - **TODO — drill "Fast changes" mode:** a second drill type: no perfect-change judging, just count how many times you switch between the two chords per minute (no metronome / free tempo). More forgiving on string quality, but it must recognise a chord change *fast* (right after each strum). Score = changes per minute. (The classic "one-minute changes" exercise.)
 
+## 2026-11-15 (cont.) — v2 step 5: Find the note + Rhythm
+
+### What we built
+- **Find the note** (`findnote.js`): app shows a note (natural or all 12; any string or one chosen string), you play it; YIN pitch held steady for a few frames (per-level `findNote.cents` / `hold`) → reaction time. Any octave counts. Wrong notes shown ("That's A — looking for G"), previous note still ringing is ignored. 10-note rounds, avg time vs last time in the same mode, slowest/fastest notes. 20 s silence → pause, resumes with a fresh note.
+- **Rhythm** (`rhythm.js`): 4 patterns on an 8-slot bar (Half notes, Quarters, Eighths, Pop ↓ ↓↑ ↑↓↑), 40–140 BPM, 1-min rounds. Each strum → nearest slot → on time (per-level `rhythm.timing`, Balanced ±60 ms) / early / late / extra; unplayed slots → missed. Slots light up and flash green on strum slots; counts + timing line live. Summary: % on time, average offset, steadiness (spread). Uses the drill's calibration (button opens it and returns).
+- **Strum detector improved** (`timing.js`, also used by the drill): confirms a strum by its pick-attack brightness ~70 ms after the start (soft up-strums over a ringing chord now count), compares with the level just before the strum, and drops a click at once so a strum right after it keeps its own start time.
+
+### Tests (fake guitar, 120 ms mic delay)
+- Find the note: 10/10 found any-string and low-E all-12; times = play delay + ~0.13 s; wrong notes caught.
+- Rhythm Pop @70: on time 97–100%; 90 ms late → all late (measured +92); 80 ms early → all early (−78); eighths over a quarter pattern → 80 extras flagged.
+- Drill still: on time 14/14 clean; 300 ms late → measured +303.
+
+### Open
+- Rhythm can't tell down- from up-strums (only timing).
+- Untested on the real guitar: up-strum detection, speaker click, Find the note on low strings through the phone mic.
+
 ## Next step
-**v2 step 5 — Find the note + Rhythm** (blueprint v2, exercises 3 and 4). Each new exercise: settings block per sensitivity level, `Store.add` entry, use `Pause` for breaks.
+**v2 step 6 — Today's session (adaptive rules) + Markdown export** (blueprint v2). Also queued: drill "Fast changes" mode (see TODO above).
