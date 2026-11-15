@@ -53,5 +53,17 @@
 - Untested on a real phone: does the speaker click ever count as "playing" and block the pause? (In tests a click + room noise is rejected as noise.)
 - Talking near the phone while paused can resume the drill (speech rings like a note). It just pauses again after 20 s.
 
+### Same day — drill accuracy (after Kuba's real-guitar test)
+Kuba's report: pause works (manual + auto). Drill said "late" even when on time or early; open strings counted as clean (on Relaxed); unclear when to strum.
+
+Causes found: (1) the app ignored phone audio delay (click plays late, mic hears late) and judged a fixed window after the beat, so on-time strums fell to the "late" check; it never measured *when* you strummed. (2) It only compared new vs old chord, never "is this actually the chord".
+
+Built:
+- `timing.js`: strum-start detection (exact onset, ring check rejects clicks/knocks) + **calibration** (strum on 8 clicks → phone delay saved; redo from drill setup or Settings).
+- Drill judges each strum: timing vs beat → clean / early / late with ms; chord must be the best (or near-best, per level `rank`) of all 31 shapes → else "wrong chord" (open strings fail at every level). Relaxed now forgives 1 string slip, not a different chord.
+- Beat guide: filling bar + 4·3·2·1·STRUM (shifted by output latency to match the heard click), timing line with the on-time zone and where your strum landed, one-line "how it's judged".
+- Summary: average timing ("you tend to strum 120 ms late"), early / late / wrong / missed counts.
+- Tests (fake guitar, 120 ms mic delay): on time 14/14 clean (−18 ms); 200 ms early → 14 early (≈197 ms); 300 ms late → 14 late (≈318 ms).
+
 ## Next step
 **v2 step 5 — Find the note + Rhythm** (blueprint v2, exercises 3 and 4). Each new exercise: settings block per sensitivity level, `Store.add` entry, use `Pause` for breaks.

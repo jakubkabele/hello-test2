@@ -31,16 +31,18 @@ Started as a pipeline test (Claude Code → GitHub → Vercel → phone); now th
 | `settings.js` | Settings screen + listening **sensitivity 1–5** profiles (`Settings.profile()`), key `practice.settings.v1` |
 | `audio.js` | `Sound`: mic open/close (`openMic(size)`), audio clock, YIN pitch detection, rms |
 | `pause.js` | `Pause`: shared break logic — 20 s without playing = paused (`AFTER_MS`), `playDetector()` hears you start again (loud + rings ≥150 ms) |
+| `timing.js` | `Timing`: strum-start detector (`strumDetector()` → exact onset time, rejects clicks/knocks by ring check) + phone-delay calibration (`offset()`, key `practice.timing.v1`) |
 | `tuner.js` | Tuner (v1), reads `Settings.profile().tuner` |
 | `chords.js` | `Chords`: chord-hearing engine — FFT → semitone bands → note decomposition (note + harmonics model) → chord recognition by fitting 31 known shapes → per-string check; single-pluck matching (`newSound`/`whichNote`) |
 | `cleancheck.js` | Clean chord check: Strum / String-by-string × Auto / Pick chord, hidden-string spot check |
-| `drill.js` | Chord change drill: pairs, metronome, 1-minute rounds, clean changes/min; auto-pause + resume, unfinished round kept in `practice.drill.unfinished`, partial rounds logged with `score.partial` |
+| `drill.js` | Chord change drill: pairs, metronome, beat guide (bar + 3·2·1·STRUM), 1-minute rounds, clean changes/min; per strum: timing vs beat (calibrated) + must be the best-matching chord of all shapes → clean / early / late / messy / wrong / missed; calibration screen; auto-pause + resume, unfinished round kept in `practice.drill.unfinished`, partial rounds logged with `score.partial` |
 | `style.css` | All styles |
 
 ### Conventions
 - Every listening exercise reads its thresholds from `Settings.profile()` (add a block per new exercise to all 5 levels; level 3 = default behavior).
 - Every finished exercise writes one entry via `Store.add({ exercise, title, chords, score, summary, activeSec })`.
 - Breaks: every listening exercise treats 20 s without playing (`Pause.AFTER_MS`) as a break — clock stops, the screen says "Paused". Fixed, not per sensitivity.
+- Drill timing: visuals are shifted by `ctx.outputLatency` so STRUM matches the heard click; strum times are corrected by the calibrated delay. Per-level `drill.timing` (± ms) and `drill.rank` (how close to the best shape).
 - Known limit: in a strum, a string an octave above a lower string (e.g. D string in Em) can't be verified — handled by the hidden-string spot check, don't try to "fix" it in the strum analysis.
 
 ## Deploy
