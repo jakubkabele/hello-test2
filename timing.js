@@ -55,7 +55,12 @@ const Timing = (() => {
           const bright = age >= BRIGHT_SEC && br >= pend.beforeBr * 2 && r > MIN_LEVEL * 0.7;
           // Backup at 150 ms: still ringing, and clearly louder than before it started.
           const rings = age >= RING_SEC && r >= pend.peak * 0.3 && r >= pend.before * rise && r > MIN_LEVEL * 0.7;
-          if (bright || rings || age >= RING_SEC) {
+          // Not bright at all at 70 ms = a click or knock: drop it now, so a real strum
+          // starting right after it gets its own (correct) start time.
+          const dull = age >= BRIGHT_SEC && br < pend.beforeBr * 1.3;
+          if (dull && !bright) {
+            pend = null;
+          } else if (bright || rings || age >= RING_SEC) {
             if (bright || rings) out = pend.t;
             pend = null;
             quietUntil = now + 0.05;
