@@ -39,9 +39,9 @@ const Timing = (() => {
   // opts.rise = how much louder than before a strum must leave the sound (lower for fast strumming).
   function strumDetector(sampleRate, opts = {}) {
     const rise = opts.rise || 1.4;
-    let baseRms = 0, baseBright = 0, pend = null, quietUntil = 0;
+    let baseRms = 0, baseBright = 0, pend = null, quietUntil = 0, prevR = 0, prevBr = 0;
     return {
-      reset() { baseRms = 0; baseBright = 0; pend = null; quietUntil = 0; },
+      reset() { baseRms = 0; baseBright = 0; pend = null; quietUntil = 0; prevR = 0; prevBr = 0; },
       feed(buf, now) {
         const N = buf.length;
         const recent = N - 1024;
@@ -74,13 +74,17 @@ const Timing = (() => {
               for (let j = i; j < i + BLOCK; j++) s += buf[j] * buf[j];
               if (Math.sqrt(s / BLOCK) > lim) { at = i; break; }
             }
-            pend = { t: now - (N - at) / sampleRate, peak: r, before: baseRms, beforeBr: baseBright };
+            // "before" = the quieter of the running level and the frame just before the strum
+            pend = { t: now - (N - at) / sampleRate, peak: r, before: Math.min(baseRms, prevR || baseRms), beforeBr: Math.min(baseBright, prevBr || baseBright) };
           }
         }
         if (!pend) {
-          baseRms = baseRms ? baseRms * 0.9 + r * 0.1 : r;
-          baseBright = baseBright ? baseBright * 0.9 + br * 0.1 : br;
+          // Running "room" level: follows a fading strum quickly, a rising sound slowly.
+          baseRms = !baseRms ? r : r < baseRms ? baseRms * 0.6 + r * 0.4 : baseRms * 0.9 + r * 0.1;
+          baseBright = !baseBright ? br : br < baseBright ? baseBright * 0.6 + br * 0.4 : baseBright * 0.9 + br * 0.1;
         }
+        prevR = r;
+        prevBr = br;
         return out;
       },
     };
