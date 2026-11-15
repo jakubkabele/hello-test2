@@ -794,7 +794,8 @@ button { font: inherit; }
 .dr-pause { display: none; text-align: center; padding-top: 32px; }
 .dr-run.is-paused .dr-pause { display: block; }
 .dr-run.is-paused .dr-chords,
-.dr-run.is-paused .dr-beatdots,
+.dr-run.is-paused .dr-guide,
+.dr-run.is-paused .dr-howto,
 .dr-run.is-paused .dr-status,
 .dr-run.is-paused .dr-stop { display: none; }
 .dr-pause-title { font-size: 2rem; font-weight: 300; color: var(--amber); }
@@ -803,3 +804,30 @@ button { font: inherit; }
 .dr-end, .dr-discard { margin: 14px auto 0; display: block; color: var(--text); background: transparent; cursor: pointer; }
 .dr-discard { color: var(--muted); }
 .paused-note { color: var(--amber); }
+
+/* Beat guide: 3 · 2 · 1 · STRUM + bar + timing line */
+.dr-guide { margin: 10px 0 4px; }
+.dr-beat {
+  height: 52px; line-height: 52px; text-align: center;
+  font-size: 2.6rem; font-weight: 300; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.dr-beat.strum { color: var(--green); font-weight: 500; letter-spacing: 0.08em; transform: scale(1.08); }
+.dr-bar { position: relative; height: 6px; border-radius: 3px; background: var(--dim); overflow: hidden; }
+.dr-bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--text); border-radius: 3px; }
+.dr-tl { position: relative; height: 18px; margin-top: 16px; }
+.dr-tl-zone { position: absolute; top: 6px; height: 6px; border-radius: 3px; background: rgba(127, 207, 149, 0.25); }
+.dr-tl-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--green); }
+.dr-tl-dot { position: absolute; top: 3px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: var(--amber); transition: left 0.2s; }
+.dr-tl-dot.ok { background: var(--green); }
+.dr-tl-legend { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+.dr-howto { margin: 4px 0 0; text-align: center; font-size: 0.85rem; color: var(--muted); }
+.dr-calrow { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 18px; font-size: 0.9rem; color: var(--muted); }
+.dr-calrow .link-btn, #cal-redo { color: var(--green); background: transparent; cursor: pointer; border: none; padding: 6px 0; }
+.dr-cal-intro, .dr-cal-steps { color: var(--text); line-height: 1.45; }
+.dr-cal-steps { padding-left: 20px; color: var(--muted); }
+.dr-cal-beat { margin: 24px 0 8px; }
+.dr-cal-status { text-align: center; min-height: 2.6em; margin: 0 0 20px; }
+.dr-cal-status.ok { color: var(--green); }
+.dr-cal-status.bad { color: var(--red); }
+.dr-cal-skip { margin: 14px auto 0; display: block; color: var(--text); background: transparent; cursor: pointer; }

@@ -1,13 +1,11 @@
 // Chord change drill — switch between two chords on the beat for one minute.
 //
-// How a change is judged (in plain words):
+// In plain words:
 // • A metronome ticks; every N beats the chord switches (A → B → A …).
-// • Right after each switch beat, the app takes ~0.7 s of sound and asks the
-//   chord engine: does this sound fit the NEW chord better than the OLD one?
-//   - yes, and the strings are fine        → ✓ clean change
-//   - yes, but e.g. a string is muted       → messy
-//   - not yet, but later in the same bar    → late
-//   - no (old chord still ringing / silence) → missed
+//   A moving bar and a 3 · 2 · 1 · STRUM counter show when to strum.
+// • The app hears each strum and when it started, checks that it's really
+//   the new chord, and says clean / early / late (by how many ms) / messy /
+//   wrong chord / missed. Details in the Run section below.
 // • Score = clean changes per minute. Tempo goes up when you're consistent.
 // • Breaks: 20 s of silence pauses the round (see Pause / the Run section).
 
@@ -39,7 +37,7 @@ const Drill = (() => {
   // ---------- Elements ----------
   const root = document.querySelector(`[data-screen="${SCREEN}"]`);
   const $ = (sel) => root.querySelector(sel);
-  const setupEl = $('.dr-setup'), runEl = $('.dr-run'), sumEl = $('.dr-summary');
+  const setupEl = $('.dr-setup'), runEl = $('.dr-run'), sumEl = $('.dr-summary'), calEl = $('.dr-cal');
   const groupBtns = root.querySelectorAll('[data-group]');
   const beatBtns = root.querySelectorAll('[data-beats]');
   const errorEl = $('.error');
@@ -105,6 +103,9 @@ const Drill = (() => {
     const same = p[0] === p[1];
     $('.dr-start').disabled = same;
     $('.dr-start').textContent = same ? 'Pick two different chords' : `Start: ${p[0]} ↔ ${p[1]} · 1 minute`;
+    const off = Timing.offset();
+    $('.dr-cal-info').textContent = off === null ? 'Timing not calibrated yet.' : `Timing calibrated · phone delay ${Math.round(off * 1000)} ms`;
+    $('.dr-recal').textContent = off === null ? 'Calibrate (15 s)' : 'Redo';
   }
 
   function lastResult(pair) {
@@ -121,17 +122,30 @@ const Drill = (() => {
   }
 
 
+
   // ---------- Run ----------
   // A round = nSeg segments of `beats` beats; each segment after the first is one change.
-  // Breaks (in plain words): when nothing is heard for 20 s, the round pauses —
-  // metronome and clock stop, and the silent changes since you last played are
-  // thrown away (not counted as missed). When you play again, a count-in starts
-  // and the round continues from the change after the last one you played.
-  // Only played time counts. An unfinished round is kept on the phone, so
-  // leaving the screen or locking the phone doesn't lose it.
+  //
+  // How a change is judged (in plain words):
+  // 1. We hear each strum and WHEN it started (see timing.js), minus your
+  //    phone's delay (calibration). Each strum belongs to the nearest change beat.
+  // 2. Right after the strum we take up to ~0.7 s of its sound and ask the chord
+  //    engine two things: is it really the new chord — the best match of all
+  //    31 shapes, or very close to it (open strings or a different chord fail) —
+  //    and are its strings fine?
+  // 3. Right chord + strings fine + within ±150 ms of the beat (by sensitivity) = ✓ clean.
+  //    Right chord but too early / too late = early / late (with how many ms).
+  //    Right chord with a muted / wrong string = messy. Not the chord = wrong chord.
+  //    No strum = missed.
+  //
+  // Breaks: when nothing is heard for 20 s, the round pauses — metronome and
+  // clock stop, and the silent changes since you last played are thrown away
+  // (not counted as missed). Play again (or tap Resume) → count-in, continue.
+  // An unfinished round is kept on the phone (leaving the screen / locking it).
   const UNFINISHED_KEY = 'practice.drill.unfinished';
   const STALE_MS = 3 * 3600 * 1000;   // an unfinished round older than this is saved as partial
   const END_GRACE = 8;                // silent this long when the round ends → pause instead of finishing
+  const SHOW_RANGE = 0.4;             // timing marker shows ±400 ms
 
   let round = null;             // { pair, bpm, beats, nSeg, results, lastPlayedSeg, savedAt }
   let running = false;          // listening + metronome ticking
@@ -140,23 +154,29 @@ const Drill = (() => {
   let shapes = [];
   let beatDur = 1, segLen = 4, baseSeg = 0, roundStart = 0, firstBeat = 0, totalBeats = 0;
   let nextBeat = 0;             // index of the next click to schedule
-  let jobs = [];                // pending sound checks
+  let jobs = [];                // pending sound checks, sorted by time
   let lastPlayedAt = 0;         // audio-clock time playing was last heard
+  let delay = 0;                // phone delay (s): calibrated or estimated
+  let winW = 32768;             // samples of sound judged after a strum
   let clickBuf = null, clicks = [];
   const detector = Pause.playDetector();
+  let strums = null;            // Timing.strumDetector
 
-  $('.dr-start').addEventListener('click', () => newRound());
+  let calSkipped = false;     // tapped "Skip" once → don't ask again this visit
+  $('.dr-start').addEventListener('click', () => (Timing.offset() === null && !calSkipped ? openCalibration(true) : newRound()));
   $('.dr-again').addEventListener('click', () => newRound());
   $('.dr-stop').addEventListener('click', () => pause('away'));
   $('.dr-resume').addEventListener('click', () => resume());
   $('.dr-end').addEventListener('click', () => { if (!finishRound(true)) { view('setup'); renderSetup(); } });
   $('.dr-discard').addEventListener('click', () => { clearRound(); view('setup'); renderSetup(); });
   $('.dr-back').addEventListener('click', () => { view('setup'); renderSetup(); });
+  $('.dr-recal').addEventListener('click', () => openCalibration(false));
 
   function view(name) {
     setupEl.hidden = name !== 'setup';
     runEl.hidden = name !== 'run';
     sumEl.hidden = name !== 'summary';
+    calEl.hidden = name !== 'cal';
   }
 
   function newRound() {
@@ -165,9 +185,24 @@ const Drill = (() => {
     const nSeg = Math.max(2, Math.round(ROUND_SEC / ((60 / cfg.bpm) * cfg.beats)));
     round = {
       pair: p, bpm: cfg.bpm, beats: cfg.beats, nSeg, lastPlayedSeg: -1,
-      results: Array.from({ length: nSeg }, () => ({ early: null, late: null, final: null })),
+      results: Array.from({ length: nSeg }, emptySeg),
     };
     resume();
+  }
+  const emptySeg = () => ({ cands: [], fallback: null, final: null });
+
+  async function openMicOrFail() {
+    try {
+      mic = await Sound.openMic(32768);
+      ctx = Sound.context();
+      if (!clickBuf) clickBuf = makeClick();
+      return true;
+    } catch {
+      errorEl.textContent = 'Microphone not available. Please allow mic access and try again.';
+      errorEl.hidden = false;
+      view('setup');
+      return false;
+    }
   }
 
   // Start (or continue) listening from the first segment not yet played.
@@ -175,18 +210,9 @@ const Drill = (() => {
     errorEl.hidden = true;
     if (!round) return;
     shapes = round.pair.map(shapeOf);
-    if (!mic || paused !== 'auto') {
-      try {
-        mic = await Sound.openMic(32768);
-      } catch {
-        errorEl.textContent = 'Microphone not available. Please allow mic access and try again.';
-        errorEl.hidden = false;
-        view('setup');
-        return;
-      }
-    }
-    ctx = Sound.context();
-    if (!clickBuf) clickBuf = makeClick();
+    if (!mic || paused !== 'auto') { if (!(await openMicOrFail())) return; }
+    delay = Timing.offset() ?? Timing.estimate(ctx);
+    strums = Timing.strumDetector(mic.sampleRate);
 
     beatDur = 60 / round.bpm;
     segLen = beatDur * round.beats;
@@ -196,19 +222,16 @@ const Drill = (() => {
     totalBeats = COUNT_IN + (round.nSeg - baseSeg) * round.beats;
     nextBeat = 0;
     lastPlayedAt = roundStart;
-    for (let k = baseSeg; k < round.nSeg; k++) round.results[k] = { early: null, late: null, final: null };
+    for (let k = baseSeg; k < round.nSeg; k++) round.results[k] = emptySeg();
 
-    // Plan the sound checks: one right after each switch, one late in the bar.
-    jobs = [];
     const sr = mic.sampleRate;
+    winW = [32768, 16384, 8192].find((w) => w / sr <= segLen - 0.15) || 8192;
+    // One "wrap-up" per segment, after every strum that could belong to it has been judged.
+    jobs = [];
     for (let k = baseSeg; k < round.nSeg; k++) {
-      const s = segStart(k);
-      const room = segLen - 0.17;
-      const W = [32768, 16384, 8192].find((w) => w / sr <= room) || 8192;
-      jobs.push({ seg: k, kind: 'early', at: s + 0.12 + W / sr, W });
-      if (segLen >= 1.8) jobs.push({ seg: k, kind: 'late', at: s + segLen - 0.08, W: 32768 });
+      jobs.push({ kind: 'wrap', seg: k, at: segStart(k) + delay + segLen / 2 + winW / sr + 0.15 });
     }
-    jobs.sort((a, b) => a.at - b.at);
+    sortJobs();
 
     running = true;
     paused = '';
@@ -217,16 +240,21 @@ const Drill = (() => {
     renderPaused();
     drawRunChords(baseSeg % 2);
     drawHistory();
+    showTimingMark(null);
     $('.dr-status').textContent = '';
+    $('.dr-howto').textContent =
+      `Strum once when it says STRUM. ✓ = right chord within ±${Settings.profile().drill.timing} ms of the beat.`;
     cancelAnimationFrame(rafId);
     loop();
   }
 
   const segStart = (k) => roundStart + (k - baseSeg) * segLen;
+  const sortJobs = () => jobs.sort((a, b) => a.at - b.at);
 
   // Pause the round. 'auto' keeps the mic on and waits for you to play;
   // 'away' (Pause button, left the screen, phone locked) turns the mic off.
   function pause(kind) {
+    if (calRun) { stopCalibration(); return; }
     if (!round) return;
     if (running) {
       running = false;
@@ -236,7 +264,7 @@ const Drill = (() => {
       // Finish the last segment you played; the silent ones after it start over.
       const k = round.lastPlayedSeg;
       if (k >= 0 && !round.results[k].final) finalize(k);
-      for (let j = k + 1; j < round.nSeg; j++) round.results[j] = { early: null, late: null, final: null };
+      for (let j = k + 1; j < round.nSeg; j++) round.results[j] = emptySeg();
     }
     if (kind === 'away' || paused === 'away') {
       cancelAnimationFrame(rafId);
@@ -254,6 +282,7 @@ const Drill = (() => {
 
   // Leaving the screen: keep the round, just stop listening.
   function stop() {
+    if (calRun) stopCalibration();
     if (running || paused) pause('away');
   }
 
@@ -276,21 +305,31 @@ const Drill = (() => {
       nextBeat++;
     }
 
-    // Sound checks that are due.
     mic.analyser.getFloatTimeDomainData(mic.buffer);
-    if (now > roundStart && detector.feed(mic.buffer, performance.now())) lastPlayedAt = now;
+    const t = strums.feed(mic.buffer, now);
+    if (t !== null) onStrum(t, now);
+
+    // Sound checks that are due.
     while (jobs.length && jobs[0].at <= now) {
       const job = jobs.shift();
-      const buf = mic.buffer.subarray(mic.buffer.length - job.W);
-      const k = job.seg;
-      const verdict = judge(buf, shapes[k % 2], k > 0 ? shapes[(k + 1) % 2] : null);
-      round.results[k][job.kind] = verdict;
-      if (verdict.played) {
-        lastPlayedAt = Math.max(lastPlayedAt, job.at);
-        round.lastPlayedSeg = Math.max(round.lastPlayedSeg, k);
+      if (job.kind === 'strum') {
+        const buf = mic.buffer.subarray(mic.buffer.length - job.W);
+        const k = job.seg;
+        const c = judge(buf, shapes[k % 2], k > 0 ? shapes[(k + 1) % 2] : null);
+        c.err = job.err;
+        round.results[k].cands.push(c);
+        if (c.played) round.lastPlayedSeg = Math.max(round.lastPlayedSeg, k);
+      } else {
+        // Wrap-up: no strum caught? Check whether the chord is ringing anyway.
+        const k = job.seg;
+        if (!round.results[k].cands.length) {
+          const buf = mic.buffer.subarray(mic.buffer.length - winW);
+          const f = judge(buf, shapes[k % 2], k > 0 ? shapes[(k + 1) % 2] : null);
+          round.results[k].fallback = f;
+          if (f.v === 'ok' || f.v === 'messy') { round.lastPlayedSeg = Math.max(round.lastPlayedSeg, k); lastPlayedAt = now; }
+        }
+        finalize(k);
       }
-      const done = job.kind === 'late' || segLen < 1.8;
-      if (done) finalize(k);
     }
 
     // Nothing heard for 20 s → pause.
@@ -298,7 +337,7 @@ const Drill = (() => {
 
     renderRun(now);
 
-    if (now > segStart(round.nSeg) + 0.2 && !jobs.length) {
+    if (!jobs.length && now > segStart(round.nSeg) - 0.1) {
       // Walked away near the end? Pause instead of counting the silence.
       if (round.lastPlayedSeg < round.nSeg - 1 && now - lastPlayedAt > END_GRACE) { pause('auto'); return; }
       finishRound(false);
@@ -307,8 +346,18 @@ const Drill = (() => {
     rafId = requestAnimationFrame(loop);
   }
 
-  // Does this sound fit the target chord (better than the previous one)?
-  // .played = some guitar was heard at all (used for auto-pause).
+  // A strum started at audio time t: which change is it for, and how far off the beat?
+  function onStrum(t, now) {
+    lastPlayedAt = now;
+    const played = t - delay;  // when you played it, on the clock of the clicks you hear
+    const k = baseSeg + Math.round((played - roundStart) / segLen);
+    if (k < baseSeg || k >= round.nSeg || round.results[k].final) return; // count-in or already judged
+    const err = played - segStart(k);
+    jobs.push({ kind: 'strum', seg: k, err, W: winW, at: t + 0.05 + winW / mic.sampleRate });
+    sortJobs();
+  }
+
+  // Is this sound the target chord (and not the previous one / something else)?
   function judge(buf, target, prev) {
     const P = Settings.profile();
     if (Sound.rms(buf) < 0.003) return { v: 'silent' };
@@ -316,8 +365,14 @@ const Drill = (() => {
     if (h.flatness > 0.05) return { v: 'noise' };
     const fT = Chords.fit(h, target);
     const fP = prev ? Chords.fit(h, prev) : -9;
-    const played = Math.max(fT, fP) >= 0.15 || Chords.recognize(h)[0].score >= 0.25;
-    if (fT < 0.25 || fT <= fP + P.drill.margin) return { v: fP > fT ? 'prev' : 'unclear', played };
+    const top = Chords.recognize(h)[0];
+    const played = Math.max(fT, fP) >= 0.15 || top.score >= 0.25;
+    // Must be (nearly) the best of all known shapes — open strings or another chord fail here.
+    const isIt = top.shape === target || top.shape.chord === target.chord || fT >= top.score - P.drill.rank;
+    if (!isIt || fT < 0.25 || fT <= fP + P.drill.margin) {
+      const still = prev && (fP >= fT || top.shape === prev || top.shape.chord === prev.chord);
+      return { v: still ? 'prev' : 'wrong', heard: top.score >= 0.25 ? top.shape.name : '', played };
+    }
     const c = Chords.check(h, target, P.chord);
     const mistakes = c.strings.filter((s) => ['muted', 'wrong', 'extra'].includes(s.status)).length;
     const quiet = c.strings.filter((s) => s.status === 'weak').length;
@@ -325,16 +380,19 @@ const Drill = (() => {
     return { v: 'messy', detail: c.problems[0].split(' — ')[0], played: true };
   }
 
+  // Decide one change from all strums heard for it.
   function finalize(k) {
     const r = round.results[k];
-    const e = r.early || { v: 'silent' };
-    const l = r.late;
+    const tol = Settings.profile().drill.timing / 1000;
+    const near = (list) => list.slice().sort((a, b) => Math.abs(a.err) - Math.abs(b.err))[0];
+    const right = near(r.cands.filter((c) => c.v === 'ok' || c.v === 'messy'));
+    const other = near(r.cands.filter((c) => c.v === 'prev' || c.v === 'wrong'));
     let final;
-    if (e.v === 'ok') final = { v: 'clean' };
-    else if (l && l.v === 'ok') final = { v: 'late' };
-    else if (e.v === 'messy') final = { v: 'messy', detail: e.detail };
-    else if (l && l.v === 'messy') final = { v: 'late' };
-    else final = { v: 'missed', detail: e.v === 'prev' ? 'prev' : e.v === 'silent' ? 'silent' : 'unclear' };
+    if (right && right.v === 'messy') final = { v: 'messy', detail: right.detail, err: right.err };
+    else if (right) final = { v: Math.abs(right.err) <= tol ? 'clean' : right.err < 0 ? 'early' : 'late', err: right.err };
+    else if (other) final = { v: 'wrong', detail: other.v === 'prev' ? 'prev' : other.heard };
+    else if (r.fallback && (r.fallback.v === 'ok' || r.fallback.v === 'messy')) final = { v: 'unheard' };
+    else final = { v: 'missed' };
     r.final = final;
     persist();
 
@@ -342,16 +400,21 @@ const Drill = (() => {
     drawHistory();
     const pair = round.pair;
     const to = pair[k % 2], from = pair[(k + 1) % 2];
+    const ms = (e) => `${Math.round(Math.abs(e) * 1000)} ms`;
     $('.dr-status').textContent =
-      'Last change: ' + (
-      final.v === 'clean' ? `✓ ${from} → ${to} clean` :
-      final.v === 'late' ? `late — ${to} came after the beat` :
+      final.v === 'clean' ? `✓ ${from} → ${to} clean · ${Math.abs(final.err) < 0.03 ? 'right on the beat' : `${ms(final.err)} ${final.err < 0 ? 'early' : 'late'}`}` :
+      final.v === 'early' ? `early — ${to} came ${ms(final.err)} before the beat` :
+      final.v === 'late' ? `late — ${to} came ${ms(final.err)} after the beat` :
       final.v === 'messy' ? `messy — ${to}: ${final.detail}` :
-      final.detail === 'prev' ? `missed — still on ${from}` :
-      final.detail === 'silent' ? 'missed — no strum heard' : `missed — couldn’t hear ${to}`);
-    $('.dr-status').className = 'dr-status ' + (final.v === 'clean' ? 'ok' : final.v === 'missed' ? 'bad' : 'meh');
+      final.v === 'wrong' ? (final.detail === 'prev' ? `wrong chord — still ${from}` :
+        final.detail ? `wrong chord — sounded like ${final.detail}, not ${to}` : `wrong chord — that wasn’t ${to}`) :
+      final.v === 'unheard' ? `${to} is ringing, but I didn’t catch the strum` :
+      'missed — no strum heard';
+    $('.dr-status').className = 'dr-status ' + statusClass(final.v);
+    showTimingMark(final.err === undefined ? null : final);
   }
 
+  const statusClass = (v) => (v === 'clean' ? 'ok' : v === 'missed' || v === 'wrong' ? 'bad' : 'meh');
   const cleanCount = () => round.results.slice(1).filter((r) => r.final && r.final.v === 'clean').length;
   const playedSegs = () => round.lastPlayedSeg + 1;
 
@@ -377,6 +440,7 @@ const Drill = (() => {
     try {
       const r = JSON.parse(localStorage.getItem(UNFINISHED_KEY) || 'null');
       if (!r || !r.pair || !shapeOf(r.pair[0]) || !shapeOf(r.pair[1]) || !Array.isArray(r.results)) return;
+      r.results = r.results.map((x) => ({ ...emptySeg(), ...x }));
       round = r;
       segLen = (60 / r.bpm) * r.beats;
       shapes = r.pair.map(shapeOf);
@@ -390,37 +454,62 @@ const Drill = (() => {
     } catch {}
   }
 
-  // ---------- Run view ----------
+  // ---------- Run view: the beat guide ----------
+  // Everything you SEE is shifted by the phone's output delay, so the STRUM
+  // flash lines up with the click you HEAR.
   let lastSeg = -2;
   function renderRun(now) {
     const pair = round.pair;
-    const inCountIn = now < roundStart;
-    const seg = inCountIn ? -1 : Math.min(round.nSeg - 1, baseSeg + Math.floor((now - roundStart) / segLen));
-    const left = Math.max(0, segStart(round.nSeg) - Math.max(now, roundStart));
-    showTime(left);
+    const v = now - (ctx.outputLatency || ctx.baseLatency || 0);
+    const pos = (v - roundStart) / beatDur;          // beats since the round (re)started
+    const inCountIn = pos < 0;
+    const seg = inCountIn ? -1 : Math.min(round.nSeg - 1, baseSeg + Math.floor(pos / round.beats));
+    showTime(Math.max(0, segStart(round.nSeg) - Math.max(v, roundStart)));
 
     if (seg !== lastSeg) {
+      if (lastSeg === -1 && seg >= 0 && /^(Get ready|Welcome back)/.test($('.dr-status').textContent)) $('.dr-status').textContent = '';
       lastSeg = seg;
       drawRunChords((seg < 0 ? baseSeg : seg) % 2);
     }
 
-    // beat dots
-    const beatInSeg = inCountIn
-      ? Math.floor((now - firstBeat) / beatDur)
-      : Math.floor(((now - roundStart) % segLen) / beatDur);
-    const n = inCountIn ? COUNT_IN : round.beats;
-    const dots = $('.dr-beatdots');
-    if (dots.children.length !== n) dots.innerHTML = '<i></i>'.repeat(n);
-    [...dots.children].forEach((d, i) => d.classList.toggle('on', i <= beatInSeg && now >= firstBeat));
+    // Big beat counter: 4 · 3 · 2 · 1 · STRUM
+    const beat = $('.dr-beat'), fill = $('.dr-bar i');
+    let label, strum = false, frac;
+    if (v < firstBeat) { label = ''; frac = 0; }
+    else if (inCountIn) {
+      label = String(Math.ceil(-pos));
+      frac = (v - firstBeat) / (COUNT_IN * beatDur);
+    } else {
+      const inSeg = pos - Math.floor(pos / round.beats) * round.beats;   // 0 … beats
+      const b = Math.floor(inSeg);
+      strum = b === 0 && inSeg < 0.45;
+      label = b === 0 ? (strum ? 'STRUM' : '') : String(round.beats - b);
+      frac = inSeg / round.beats;
+    }
+    if (beat.textContent !== label) beat.textContent = label;
+    beat.classList.toggle('strum', strum);
+    fill.style.width = `${Math.min(100, frac * 100)}%`;
 
     if (inCountIn) {
-      const count = COUNT_IN - Math.max(0, Math.floor((now - firstBeat) / beatDur));
       const first = pair[baseSeg % 2];
       $('.dr-status').textContent = baseSeg === 0
-        ? `Get ready — ${first} first · ${Math.min(COUNT_IN, count)}`
-        : `Welcome back — ${first} on the beat · ${Math.min(COUNT_IN, count)}`;
+        ? `Get ready — strum ${first} on STRUM`
+        : `Welcome back — ${first} on STRUM`;
       $('.dr-status').className = 'dr-status';
     }
+  }
+
+  // Small timeline under the guide: where your strum landed vs. the beat (centre line).
+  function showTimingMark(f) {
+    const tol = Settings.profile().drill.timing / 1000;
+    const zone = $('.dr-tl-zone'), dot = $('.dr-tl-dot');
+    zone.style.left = `${50 - (tol / SHOW_RANGE) * 50}%`;
+    zone.style.width = `${(tol / SHOW_RANGE) * 100}%`;
+    if (!f) { dot.hidden = true; return; }
+    const x = Math.max(-1, Math.min(1, f.err / SHOW_RANGE));
+    dot.hidden = false;
+    dot.style.left = `${50 + x * 50}%`;
+    dot.className = 'dr-tl-dot ' + (Math.abs(f.err) <= tol ? 'ok' : 'meh');
   }
 
   function showTime(left) {
@@ -433,7 +522,7 @@ const Drill = (() => {
     if (hist.children.length !== round.nSeg - 1) hist.innerHTML = '<i></i>'.repeat(round.nSeg - 1);
     for (let k = 1; k < round.nSeg; k++) {
       const f = round.results[k].final;
-      hist.children[k - 1].className = !f ? '' : f.v === 'clean' ? 'ok' : f.v === 'missed' ? 'bad' : 'meh';
+      hist.children[k - 1].className = f ? statusClass(f.v) : '';
     }
     $('.dr-count').textContent = `${cleanCount()} clean`;
   }
@@ -450,6 +539,107 @@ const Drill = (() => {
       `${round.pair[0]} ↔ ${round.pair[1]} · ${round.bpm} BPM · ${played} s played · ${cleanCount()} clean so far`;
     $('.dr-end').hidden = playedSegs() < 2;
     drawRunChords(playedSegs() % 2);
+  }
+
+  // ---------- Timing calibration ----------
+  // You strum any chord once on each of 8 clicks; the typical gap between the
+  // click and the strum we hear = your phone's delay. Saved, redo any time.
+  const CAL_BPM = 70, CAL_CLICKS = 8;
+  let calRun = null;           // { firstBeat, beatDur, hits: [], thenDrill }
+  $('.dr-cal-go').addEventListener('click', () => startCalibration());
+  $('.dr-cal-skip').addEventListener('click', () => {
+    const then = calEl.dataset.then === '1';
+    if (then) { calSkipped = true; newRound(); } else { view('setup'); renderSetup(); }
+  });
+
+  function openCalibration(thenDrill) {
+    view('cal');
+    calEl.dataset.then = thenDrill ? '1' : '';
+    const cur = Timing.offset();
+    $('.dr-cal-beat').textContent = '';
+    $('.dr-cal-status').textContent = cur === null
+      ? 'Not calibrated yet.'
+      : `Current delay: ${Math.round(cur * 1000)} ms.`;
+    $('.dr-cal-status').className = 'dr-cal-status';
+    $('.dr-cal-go').textContent = 'Start calibration';
+    $('.dr-cal-go').hidden = false;
+    $('.dr-cal-skip').textContent = thenDrill ? 'Skip — use a rough guess' : 'Back';
+  }
+
+  async function startCalibration() {
+    errorEl.hidden = true;
+    if (!(await openMicOrFail())) return;
+    const bd = 60 / CAL_BPM;
+    calRun = { firstBeat: ctx.currentTime + 0.4, beatDur: bd, hits: [], det: Timing.strumDetector(mic.sampleRate) };
+    for (let i = 0; i < COUNT_IN + CAL_CLICKS; i++) playClick(calRun.firstBeat + i * bd, i === 0 || i >= COUNT_IN);
+    $('.dr-cal-go').hidden = true;
+    $('.dr-cal-status').textContent = 'Listen to 4 clicks, then strum once on each of the next 8.';
+    calLoop();
+  }
+
+  function calLoop() {
+    if (!calRun) return;
+    const now = ctx.currentTime;
+    const c = calRun;
+    mic.analyser.getFloatTimeDomainData(mic.buffer);
+    const t = c.det.feed(mic.buffer, now);
+    if (t !== null) {
+      // nearest strum click
+      const i = Math.round((t - c.firstBeat) / c.beatDur);
+      const gap = t - (c.firstBeat + i * c.beatDur);
+      if (i >= COUNT_IN && i < COUNT_IN + CAL_CLICKS && gap > -0.15 && gap < 0.6) c.hits.push(gap);
+      // A big delay can push a strum past the halfway point to the next click.
+      else if (i - 1 >= COUNT_IN && i - 1 < COUNT_IN + CAL_CLICKS && gap + c.beatDur < 0.6) c.hits.push(gap + c.beatDur);
+    }
+    const v = now - (ctx.outputLatency || ctx.baseLatency || 0);
+    const pos = (v - c.firstBeat) / c.beatDur;
+    const beatEl = $('.dr-cal-beat');
+    const b = Math.floor(pos);
+    beatEl.textContent = pos < 0 ? '' : b < COUNT_IN ? String(COUNT_IN - b) : b < COUNT_IN + CAL_CLICKS ? 'STRUM' : '';
+    beatEl.classList.toggle('strum', b >= COUNT_IN && pos - b < 0.45);
+    if (b >= COUNT_IN) $('.dr-cal-status').textContent = `Strum on each click · heard ${c.hits.length} of ${CAL_CLICKS}`;
+
+    if (now > c.firstBeat + (COUNT_IN + CAL_CLICKS) * c.beatDur + 0.6) { endCalibration(); return; }
+    rafId = requestAnimationFrame(calLoop);
+  }
+
+  function endCalibration() {
+    const hits = calRun.hits.slice().sort((a, b) => a - b);
+    stopCalibration();
+    const st = $('.dr-cal-status');
+    $('.dr-cal-go').hidden = false;
+    $('.dr-cal-go').textContent = 'Try again';
+    if (hits.length < 5) {
+      st.textContent = `I only heard ${hits.length} of 8 strums. Strum a full chord, a bit louder, once per click.`;
+      st.className = 'dr-cal-status bad';
+      return;
+    }
+    const med = hits[Math.floor(hits.length / 2)];
+    const spread = hits.map((h) => Math.abs(h - med)).sort((a, b) => a - b)[Math.floor(hits.length / 2)];
+    if (spread > 0.06) {
+      st.textContent = 'Your strums were too uneven to measure — try again, just follow the click.';
+      st.className = 'dr-cal-status bad';
+      return;
+    }
+    Timing.save(med);
+    st.textContent = `Done ✓ Your phone’s delay: ${Math.round(med * 1000)} ms. Saved — redo it if you switch to headphones.`;
+    st.className = 'dr-cal-status ok';
+    if (calEl.dataset.then === '1') {
+      $('.dr-cal-go').hidden = true;
+      $('.dr-cal-skip').textContent = 'Start the drill';
+    } else {
+      $('.dr-cal-skip').textContent = 'Back';
+    }
+    renderSetup();
+  }
+
+  function stopCalibration() {
+    calRun = null;
+    cancelAnimationFrame(rafId);
+    clicks.forEach((c) => { try { c.stop(); } catch {} });
+    clicks = [];
+    if (mic) Sound.closeMic();
+    mic = null;
   }
 
   function drawRunChords(currentIdx) {
@@ -508,6 +698,7 @@ const Drill = (() => {
   }
 
 
+
   // ---------- Round result ----------
   // partial = ended early: score only what was played; tempo isn't changed and
   // partial rounds don't count as "last time" / "best".
@@ -522,14 +713,18 @@ const Drill = (() => {
     const segSec = (60 / r.bpm) * r.beats;
     const changes = n - 1;
     const finals = r.results.slice(1, n).map((x) => x.final || { v: 'missed' });
-    const clean = finals.filter((f) => f.v === 'clean').length;
-    const late = finals.filter((f) => f.v === 'late').length;
-    const missed = finals.filter((f) => f.v === 'missed').length;
+    const count = (v) => finals.filter((f) => f.v === v).length;
+    const clean = count('clean'), early = count('early'), late = count('late');
+    const wrong = count('wrong'), missed = count('missed') + count('unheard');
     const messy = finals.filter((f) => f.v === 'messy');
     const minutes = (n * segSec) / 60;
     const perMin = Math.round(clean / minutes);
     const accuracy = changes ? clean / changes : 0;
     const activeSec = Math.round(n * segSec);
+
+    // Typical timing of the strums that hit the right chord (median, in ms; + = late).
+    const errs = finals.filter((f) => typeof f.err === 'number').map((f) => f.err).sort((a, b) => a - b);
+    const timingMs = errs.length ? Math.round(errs[Math.floor(errs.length / 2)] * 1000) : null;
 
     const prev = lastResult(pair);
     const best = bestResult(pair);
@@ -554,8 +749,8 @@ const Drill = (() => {
       title: 'Change drill',
       chords: pair.slice(),
       score: {
-        changesPerMin: perMin, clean, changes, late, missed, messy: messy.length,
-        bpm: playedBpm, beatsPerChord: r.beats, accuracy: Math.round(accuracy * 100), issues,
+        changesPerMin: perMin, clean, changes, early, late, wrong, missed, messy: messy.length,
+        bpm: playedBpm, beatsPerChord: r.beats, accuracy: Math.round(accuracy * 100), issues, timingMs,
         ...(partial ? { partial: true } : {}),
       },
       summary: `${arrow}: ${perMin} changes/min${prevText} @ ${playedBpm} BPM${partText}`,
@@ -579,12 +774,18 @@ const Drill = (() => {
     const details = $('.dr-details');
     details.innerHTML = '';
     const lines = [`${clean} of ${changes} changes clean`];
-    if (late) lines.push(`${late} late — the chord landed after the beat`);
+    if (timingMs !== null) {
+      lines.push(Math.abs(timingMs) <= 40 ? `Timing: right on the beat on average (${timingMs > 0 ? '+' : ''}${timingMs} ms)`
+        : `Timing: you tend to strum ${Math.abs(timingMs)} ms ${timingMs > 0 ? 'late' : 'early'}`);
+    }
+    if (early) lines.push(`${early} early — the chord came before the beat`);
+    if (late) lines.push(`${late} late — the chord came after the beat`);
     if (messy.length) {
       const top = Object.entries(issues).sort((a, b) => b[1] - a[1])[0];
       lines.push(`${messy.length} messy — most often: ${top[0]} (×${top[1]})`);
     }
-    if (missed) lines.push(`${missed} missed`);
+    if (wrong) lines.push(`${wrong} wrong chord`);
+    if (missed) lines.push(`${missed} missed — no strum heard`);
     lines.forEach((t) => { const li = document.createElement('li'); li.textContent = t; details.appendChild(li); });
 
     $('.dr-next').textContent = !cfg.auto || partial ? '' :
@@ -596,9 +797,12 @@ const Drill = (() => {
 
   // ---------- Screen ----------
   function show() {
+    let wantCal = false;
+    try { wantCal = sessionStorage.getItem('drill.calibrate') === '1'; sessionStorage.removeItem('drill.calibrate'); } catch {}
     if (round && paused) { view('run'); renderPaused(); drawHistory(); return; }
+    if (wantCal && !running) { openCalibration(false); return; }
     if (!running) {
-      if (sumEl.hidden) view('setup');
+      if (sumEl.hidden && calEl.hidden) view('setup');
       renderSetup();
     }
   }

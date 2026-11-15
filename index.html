@@ -56,6 +56,9 @@
       <p class="sens-intro">How picky the app is when it listens — for the tuner, the chord check and every exercise that listens. Lower = more forgiving and steadier. Higher = more exact.</p>
       <div id="sens-list" class="sens-list" role="radiogroup" aria-label="Listening sensitivity"></div>
       <p class="sens-intro">Changes apply right away, even mid-exercise.</p>
+      <h2 class="section">Timing</h2>
+      <p class="sens-intro"><span id="cal-info"></span></p>
+      <button id="cal-redo" class="link-btn">Calibrate timing</button>
     </section>
 
     <!-- ========== Log ========== -->
@@ -123,8 +126,22 @@
         </div>
         <label class="dr-toggle"><input type="checkbox" class="dr-auto"> Raise tempo when I’m consistent</label>
         <label class="dr-toggle"><input type="checkbox" class="dr-click"> Metronome click</label>
+        <div class="dr-calrow"><span class="dr-cal-info"></span><button class="link-btn dr-recal"></button></div>
         <button class="start dr-start">Start</button>
         <p class="error" hidden></p>
+      </div>
+
+      <div class="dr-cal" hidden>
+        <h2 class="section">Timing calibration</h2>
+        <p class="dr-cal-intro">Your phone plays the click a little late and hears your guitar a little late. This measures that delay once, so “on the beat” means on the click you hear.</p>
+        <ol class="dr-cal-steps">
+          <li>Use the setup you practise with (speaker or headphones), metronome sound on.</li>
+          <li>After 4 count-in clicks, strum any chord once on each of the next 8 clicks.</li>
+        </ol>
+        <div class="dr-beat dr-cal-beat"></div>
+        <p class="dr-cal-status"></p>
+        <button class="start dr-cal-go">Start calibration</button>
+        <button class="link-btn dr-cal-skip">Back</button>
       </div>
 
       <div class="dr-run" hidden>
@@ -133,8 +150,16 @@
           <div class="dr-chord dr-a"><div class="dr-name"></div><svg class="dr-diag cc-diagram" viewBox="0 0 240 260"></svg></div>
           <div class="dr-chord dr-b"><div class="dr-name"></div><svg class="dr-diag cc-diagram" viewBox="0 0 240 260"></svg></div>
         </div>
-        <div class="dr-beatdots"></div>
+        <div class="dr-guide">
+          <div class="dr-beat"></div>
+          <div class="dr-bar"><i></i></div>
+          <div class="dr-tl" aria-hidden="true">
+            <span class="dr-tl-zone"></span><span class="dr-tl-line"></span><span class="dr-tl-dot" hidden></span>
+          </div>
+          <div class="dr-tl-legend"><span>early</span><span>on the beat</span><span>late</span></div>
+        </div>
         <p class="dr-status"></p>
+        <p class="dr-howto"></p>
         <div class="dr-history"></div>
         <button class="start listening dr-stop">Pause</button>
         <div class="dr-pause">
@@ -197,6 +222,7 @@
   <script src="settings.js"></script>
   <script src="audio.js"></script>
   <script src="pause.js"></script>
+  <script src="timing.js"></script>
   <script src="tuner.js"></script>
   <script src="chords.js"></script>
   <script src="cleancheck.js"></script>

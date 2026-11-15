@@ -20,9 +20,11 @@ const Settings = (() => {
       // chord name is, focus = how clear a pluck must be, giveUp = ms of silence
       // before a string counts as muted, spot = auto-check hidden strings after a strum
       // drill: mistakes (wrong fret / muted / extra string) and quiet strings still
-      // counted as a clean change; margin = how clearly the new chord must beat the old one
+      // counted as a clean change; margin = how clearly the new chord must beat the old one;
+      // rank = how close to the best of all 31 shapes the chord must be (else "wrong chord");
+      // timing = ± ms around the beat that still counts as on time
       chord: { ring: 0.2, extra: 0.5, stick: 0.3, focus: 0.25, giveUp: 8000, spot: false },
-      drill: { mistakes: 99, quiet: 99, margin: 0 },
+      drill: { mistakes: 1, quiet: 99, margin: 0, rank: 0.15, timing: 250 },
     },
     {
       level: 2,
@@ -31,7 +33,7 @@ const Settings = (() => {
       fit: 'Good when you’re learning a new chord and don’t want to be nagged.',
       tuner: { inTune: 6, near: 22, history: 7, ease: 0.11, onset: 4, release: 28 },
       chord: { ring: 0.27, extra: 0.4, stick: 0.18, focus: 0.3, giveUp: 6500, spot: false },
-      drill: { mistakes: 1, quiet: 99, margin: 0.03 },
+      drill: { mistakes: 1, quiet: 2, margin: 0.03, rank: 0.12, timing: 200 },
     },
     {
       level: 3,
@@ -40,7 +42,7 @@ const Settings = (() => {
       fit: 'Recommended for everyday practice.',
       tuner: { inTune: 5, near: 20, history: 5, ease: 0.18, onset: 3, release: 18 },
       chord: { ring: 0.35, extra: 0.3, stick: 0.08, focus: 0.35, giveUp: 5000, spot: false },
-      drill: { mistakes: 0, quiet: 99, margin: 0.05 },
+      drill: { mistakes: 0, quiet: 99, margin: 0.05, rank: 0.1, timing: 150 },
     },
     {
       level: 4,
@@ -49,7 +51,7 @@ const Settings = (() => {
       fit: 'Good for polishing chords you already know — best in a quiet room.',
       tuner: { inTune: 4, near: 15, history: 4, ease: 0.26, onset: 2, release: 14 },
       chord: { ring: 0.45, extra: 0.25, stick: 0.03, focus: 0.4, giveUp: 4500, spot: true },
-      drill: { mistakes: 0, quiet: 0, margin: 0.08 },
+      drill: { mistakes: 0, quiet: 0, margin: 0.08, rank: 0.07, timing: 120 },
     },
     {
       level: 5,
@@ -58,7 +60,7 @@ const Settings = (() => {
       fit: '⚠ Because it’s so picky it can mark things wrong that sounded fine — especially with background noise or a phone far from the guitar.',
       tuner: { inTune: 3, near: 12, history: 3, ease: 0.35, onset: 2, release: 10 },
       chord: { ring: 0.55, extra: 0.2, stick: 0, focus: 0.45, giveUp: 4000, spot: true },
-      drill: { mistakes: 0, quiet: 0, margin: 0.1 },
+      drill: { mistakes: 0, quiet: 0, margin: 0.1, rank: 0.05, timing: 100 },
     },
   ];
 
@@ -90,6 +92,7 @@ const Settings = (() => {
   const listEl = document.getElementById('sens-list');
 
   function render() {
+    renderTiming();
     const current = sensitivity();
     listEl.innerHTML = '';
     LEVELS.forEach((l) => {
@@ -116,6 +119,18 @@ const Settings = (() => {
       listEl.appendChild(b);
     });
   }
+
+  // Timing calibration lives in the change drill; Settings just shows it and links there.
+  function renderTiming() {
+    const off = typeof Timing !== 'undefined' ? Timing.offset() : null;
+    document.getElementById('cal-info').textContent = off === null
+      ? 'Not calibrated yet. Calibrating once makes early / late in the change drill accurate on your phone.'
+      : `Phone delay: ${Math.round(off * 1000)} ms. Redo it if you switch between speaker and headphones.`;
+  }
+  document.getElementById('cal-redo').addEventListener('click', () => {
+    try { sessionStorage.setItem('drill.calibrate', '1'); } catch {}
+    location.hash = '#/exercise/change-drill';
+  });
 
   // Five little bars, filled up to the level — a quick visual of "how picky".
   function dots(level) {
