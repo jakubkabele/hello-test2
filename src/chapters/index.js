@@ -1,9 +1,14 @@
-// One file per chapter. To add a chapter: write its file, add it here and in config/shots.js.
+// The scroll: the hero, then one stop per part of the rig. Words live in content.js,
+// camera positions in config/shots.js.
 import hero from './hero.js';
-import log from './log.js';
-import learning from './learning.js';
-import clips from './clips.js';
-import gear from './gear.js';
-import contact from './contact.js';
+import { makeStop } from './stop.js';
 
-export const chapters = [hero, log, learning, clips, gear, contact];
+export const chapters = [
+  hero,
+  makeStop('tuner', { side: true, cap: 0.27 }),
+  makeStop('chords', { cap: 0.17 }),
+  makeStop('body', { side: true, cap: 0.27 }),
+  makeStop('amp', { cap: 0.2 }),
+  makeStop('pedal', { side: true, cap: 0.27 }),
+  makeStop('stage', { cap: 0.2 }),
+];

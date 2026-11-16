@@ -1,146 +1,111 @@
 // ─────────────────────────────────────────────────────────────────────────────
-//  ALL THE WORDS ON THE SITE LIVE HERE.
-//  Edit this file, push, done. Nothing else needs to change.
+//  ALL THE WORDS ON THE SITE LIVE HERE.  Edit this file, push, done.
 //
-//  • Text in "title" arrays = the huge stacked words (one array item per line).
-//  • "jp" = the small Japanese subtext. Purely decorative — delete or change freely.
-//  • Anything marked  ← EDIT  is placeholder I made up for you.
+//  • "title" arrays = the huge stacked words (one array item per line).
+//  • "jp" = the small Japanese subtext (decorative).
+//  • cards: what you can open from that stop.
+//       open: 'tuner'   → opens the exercise inside the 3D world
+//       href: '…'       → temporary bridge to the old screens (until rebuilt here)
+//       soon: true      → shown as "coming soon", not tappable
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const content = {
   site: {
-    pageTitle: 'KUBA — STRING UNIT 01',
-    callsign: 'KUBA',                 // top-left of the screen
-    unit: 'STRING UNIT 01',
-    unitJp: '弦楽器操縦者',            // "string instrument operator"
-    practiceUrl: '/practice/',        // your practice app (tuner, drills)
+    pageTitle: 'ORPHEUS 琴 — a guitar that listens',
+    name: 'ORPHEUS',
+    mark: '琴',                    // the emblem (koto / lyre)
+    kana: 'オルフェウス',
+    practiceUrl: '/practice/',
   },
 
-  // The start-up screen (keep it short: the whole thing lasts under 3 seconds)
+  // Start-up screen (the whole thing lasts under 3 seconds)
   boot: [
     ['POWER', 'OK'],
     ['STRINGS', '6 / 6'],
-    ['TUNING', 'E A D G B E'],
-    ['OPERATOR', 'BEGINNER'],
-    ['FOCUS SYSTEM', 'ARMED'],
-    ['AMPLIFIER', 'WARM'],
+    ['MICROPHONE', 'STANDBY'],
+    ['LISTENING CORE', 'ARMED'],
   ],
 
   hero: {
-    no: '01',
-    name: 'System online',
-    jp: '起動',
-    title: ['STILL', 'LEARN', 'ING.'],
-    caption:
-      'Six strings, ten fingers, no talent detected yet. The flight recorder of a beginner on electric guitar.',
-    meta: [
-      ['OPERATOR', 'KUBA'],
-      ['CLASS', 'BEGINNER'],
-      ['INSTRUMENT', 'ELECTRIC / 6 STR'],
-      ['SINCE', '2026'],                       // ← EDIT
-    ],
-    warning: 'Operator is a beginner. Expect wrong notes.',
+    no: '00', name: 'Orpheus', jp: 'オルフェウス',
+    title: ['IT', 'HEARS', 'YOU.'],
+    caption: 'A practice partner that listens to your guitar and tells you the truth. Scroll to choose what to work on.',
     hint: 'Drag = rotate · Tap strings = play · Hold = focus',
   },
 
-  log: {
-    no: '02',
-    name: 'Practice log',
-    jp: '練習記録',
-    title: ['DAY', 'BY', 'DAY.'],
-    caption: 'Newest first. Every entry is a small win or an honest failure.',
-    // ← EDIT: your journey. Add as many as you like (newest on top).
-    entries: [
-      { date: '2026.11', code: 'LOG-006', title: 'First clean chord change', note: 'Em → Am without looking at my hand. Twelve changes a minute. It felt like flying.' },
-      { date: '2026.11', code: 'LOG-005', title: 'Built my own practice partner', note: 'A tuner and chord drills that listen to me play. Now the phone tells me when I am wrong.' },
-      { date: '2026.10', code: 'LOG-004', title: 'Fingertips stopped hurting', note: 'Calluses online. Twenty minutes a day turned out to be enough.' },
-      { date: '2026.10', code: 'LOG-003', title: 'Three chords', note: 'Em, Am, C. Slow, buzzy, but recognisable. Somebody asked what song it was.' },
-      { date: '2026.09', code: 'LOG-002', title: 'Learned to tune', note: 'E A D G B E. Took forty minutes the first time. Takes one now.' },
-      { date: '2026.09', code: 'LOG-001', title: 'First contact', note: 'Bought the guitar. Could not play anything. Played it anyway.' },
+  tuner: {
+    no: '01', name: 'Tuner', jp: '調弦',
+    title: ['TUNE', 'UP.'],
+    caption: 'Play a string. Turn the peg until it locks.',
+    cards: [
+      { code: 'EX-01', name: 'Tuner', line: 'Six strings, one at a time', open: 'tuner' },
     ],
   },
 
-  learning: {
-    no: '03',
-    name: 'Now learning',
-    jp: '学習中',
-    title: ['CHORD', 'BANK.'],
-    caption: 'Tap a chord — it lights up on the neck and plays. Tap it again to clear. Swipe across the strings to strum.',
-    // frets: one number per string, thick E string first. 0 = open, x = not played.
-    // status: 'solid' | 'shaky' | 'next'
-    chords: [
-      { name: 'Em', frets: [0, 2, 2, 0, 0, 0], status: 'solid' },
-      { name: 'Am', frets: ['x', 0, 2, 2, 1, 0], status: 'solid' },
-      { name: 'C',  frets: ['x', 3, 2, 0, 1, 0], status: 'shaky' },
-      { name: 'G',  frets: [3, 2, 0, 0, 0, 3], status: 'shaky' },
-      { name: 'D',  frets: ['x', 'x', 0, 2, 3, 2], status: 'shaky' },
-      { name: 'F',  frets: [1, 3, 3, 2, 1, 1], status: 'next' },
-    ],
-    // ← EDIT: what you are working on. value = 0–100.
-    skills: [
-      { name: 'Chord changes', value: 45 },
-      { name: 'Rhythm / strumming', value: 35 },
-      { name: 'Notes on the neck', value: 20 },
-      { name: 'Barre chords', value: 5 },
-    ],
-    // ← EDIT
-    songs: ['Song one — verse only', 'Song two — the riff', 'Song three — someday'],
-    warning: 'F chord ahead. Barre required.',
-  },
-
-  clips: {
-    no: '04',
-    name: 'Practice clips',
-    jp: '映像記録',
-    title: ['PROOF', 'OF', 'NOISE.'],
-    caption: 'Unedited evidence. Mistakes included on purpose.',
-    // ← EDIT: put a video in /public/clips/ and write its path in "src",
-    //   e.g. src: '/clips/first-riff.mp4'. Or put a YouTube / Instagram address in "link".
-    items: [
-      { code: 'REC-003', title: 'First riff, 60 bpm', date: '2026.11', src: '', link: '' },
-      { code: 'REC-002', title: 'Em → Am changes', date: '2026.10', src: '', link: '' },
-      { code: 'REC-001', title: 'Day one. It is bad.', date: '2026.09', src: '', link: '' },
-    ],
-    empty: 'NO SIGNAL — add a clip in content.js',
-  },
-
-  gear: {
-    no: '05',
-    name: 'The rig',
-    jp: '機材',
-    title: ['THE', 'RIG.'],
-    caption: 'Everything between my fingers and the noise.',
-    // ← EDIT: your real gear. "part" = where the focus window flies when you tap the item:
-    //   headstock | frets | pickups | bridge | controls | body
-    items: [
-      { code: 'EQ-01', name: 'The guitar', part: 'body', spec: ['Electric · 6 strings · 22 frets', 'Model: write yours here'] },
-      { code: 'EQ-02', name: 'Amplifier', part: 'controls', spec: ['Small practice amp', 'Volume: lower than I would like'] },
-      { code: 'EQ-03', name: 'Strings', part: 'bridge', spec: ['10–46 gauge', 'Changed: not often enough'] },
-      { code: 'EQ-04', name: 'Picks', part: 'pickups', spec: ['0.73 mm', 'Lost: several'] },
-      { code: 'EQ-05', name: 'Phone', part: 'bridge', spec: ['Tuner + practice partner', 'Listens better than I play'] },
+  chords: {
+    no: '02', name: 'Chords', jp: '和音',
+    title: ['LEFT', 'HAND.'],
+    caption: 'Every string of every chord, checked.',
+    cards: [
+      { code: 'EX-02', name: 'Clean chord check', line: 'Does every string ring?', href: '/practice/#/exercise/clean-check' },
+      { code: 'EX-03', name: 'Chord change drill', line: 'Clean changes per minute', href: '/practice/#/exercise/change-drill' },
     ],
   },
 
-  contact: {
-    no: '06',
-    name: 'Open channel',
-    jp: '通信',
-    title: ['SIGNAL', 'OUT.'],
-    caption: 'Everything is in focus now. Say hi, send a song I should learn, or tell me my thumb is in the wrong place.',
-    // ← EDIT: your real links
-    links: [
-      { label: 'Email', value: 'hello@example.com', href: 'mailto:hello@example.com' },
-      { label: 'Instagram', value: '@yourhandle', href: 'https://instagram.com/' },
-      { label: 'YouTube', value: 'your channel', href: 'https://youtube.com/' },
+  body: {
+    no: '03', name: 'Time & pitch', jp: '律動',
+    title: ['RIGHT', 'HAND.'],
+    caption: 'Strum on the beat. Find any note.',
+    cards: [
+      { code: 'EX-04', name: 'Rhythm', line: 'Strum patterns against the click', href: '/practice/#/exercise/rhythm' },
+      { code: 'EX-05', name: 'Find the note', line: 'Name it, find it, play it', href: '/practice/#/exercise/find-note' },
     ],
-    practice: 'Enter practice mode',
-    practiceNote: 'Tuner, chord checks and drills that listen to you play.',
-    sign: 'End of transmission',
-    signJp: '通信終了',
+  },
+
+  amp: {
+    no: '04', name: 'Amplifier', jp: '増幅器',
+    title: ['THE', 'AMP.'],
+    caption: 'How strict Orpheus listens.',
+    cards: [
+      { code: 'SYS-01', name: 'Sensitivity', line: 'Forgiving ↔ exact', href: '/practice/#/settings' },
+      { code: 'SYS-02', name: 'Songs', line: 'Play along', soon: true },
+    ],
+  },
+
+  pedal: {
+    no: '05', name: 'Recorder', jp: '記録',
+    title: ['THE', 'LOG.'],
+    caption: 'Everything you practise, kept on this device.',
+    cards: [
+      { code: 'REC-01', name: 'Practice log', line: 'Sessions, day by day', href: '/practice/#/log' },
+    ],
+  },
+
+  stage: {
+    no: '06', name: 'Next on stage', jp: '予告',
+    title: ['COMING', 'SOON.'],
+    caption: '',
+    cards: [
+      { code: 'SOON', name: 'Today’s session', line: 'A guided set, built from your log', soon: true },
+      { code: 'SOON', name: 'Fast changes', line: 'One-minute chord switches', soon: true },
+    ],
+  },
+
+  // Words used inside the exercises
+  ex: {
+    tuner: {
+      no: 'EX-01', name: 'Tuner', jp: '調弦',
+      start: 'Start listening', stop: 'Stop',
+      idle: 'Tap start, then play one string.',
+      listening: 'Play a string.',
+      flat: 'Too low — tighten', sharp: 'Too high — loosen', ok: 'In tune',
+      denied: 'Microphone not available.',
+      done: 'All six in tune.',
+    },
   },
 };
 
-// Names shown beside the focus window when it locks onto a part of the guitar.
+// Names shown beside the focus window when it locks onto something.
 export const PARTS = {
   headstock: { en: 'HEADSTOCK', jp: 'ヘッド' },
   frets: { en: 'FRETBOARD', jp: '指板' },
@@ -149,5 +114,8 @@ export const PARTS = {
   bridge: { en: 'BRIDGE', jp: 'ブリッジ' },
   body: { en: 'BODY', jp: 'ボディ' },
   controls: { en: 'CONTROLS', jp: '操作部' },
-  center: { en: 'FULL UNIT', jp: '全体' },
+  amp: { en: 'AMPLIFIER', jp: '増幅器' },
+  pedal: { en: 'RECORDER', jp: '記録' },
+  center: { en: 'ORPHEUS', jp: '琴' },
+  peg: { en: 'PEG', jp: '糸巻' },
 };

@@ -12,7 +12,8 @@
 .hud-top::after { content: ''; position: absolute; left: var(--pad); right: var(--pad); bottom: 0; height: 1px;
   background: linear-gradient(90deg, var(--line) 0 42%, transparent 42% 46%, var(--line) 46% 100%); }
 .hud-id { display: flex; align-items: center; gap: 9px; min-height: 44px; text-align: left; }
-.hud-id b { font: 400 22px/1 var(--d); letter-spacing: 0.02em; }
+.hud-id b { font: 400 22px/1 var(--d); letter-spacing: 0.04em; }
+.hud-mark { font: 800 22px/1 var(--s); font-style: normal; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--paper); }
 .hud-id span { font-size: 8.5px; line-height: 1.35; color: var(--dim); display: flex; flex-direction: column; letter-spacing: 0.12em; }
 .hud-id em { font: 800 9px/1.3 var(--s); font-style: normal; letter-spacing: 0.16em; color: var(--paper); }
 .hud-btns { display: flex; gap: 6px; }
@@ -29,7 +30,7 @@
 #btn-snd[data-s='off'] .w1, #btn-snd[data-s='off'] .w2, #btn-snd[data-s='idle'] .w2 { display: none; }
 #btn-snd[data-s='off'] .x { display: block; }
 #btn-snd[data-s='idle'] { animation: blink 1.6s steps(2) infinite; }
-#btn-snd { min-width: 78px; }
+#btn-snd { min-width: 64px; }
 .hbtn .dot { width: 6px; height: 6px; border: 1px solid currentColor; border-radius: 50%; }
 #btn-live[aria-pressed='true'] { color: var(--amber); }
 #btn-live[aria-pressed='true'] .dot { background: var(--amber); animation: blink 1s steps(2) infinite; }
@@ -66,10 +67,18 @@
 .hud-bot::before { content: ''; position: absolute; left: var(--pad); right: var(--pad); top: 0; height: 5px;
   border-top: 1px solid var(--line);
   background: repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 8px) 0 0 / 100% 4px no-repeat; }
-.ro { display: flex; flex-direction: column; gap: 3px; white-space: nowrap; }
+.ro { display: flex; align-items: baseline; gap: 8px; white-space: nowrap; }
+#ro-scn { font: 800 15px/1 var(--s); }
+#ro-name { font-size: 9px; text-transform: uppercase; }
+/* inside an exercise the index and the bottom strip step aside */
+.hud-index, .hud-bot { transition: opacity 0.4s; }
+[data-ex] .hud-index { opacity: 0; pointer-events: none; }
+[data-ex] .hud-index button { pointer-events: none; }
+[data-ex] .ro:first-child { opacity: 0; }
 .ro label { font-size: 7.5px; color: var(--dim); letter-spacing: 0.16em; }
 .ro b { font-weight: 500; font-size: 10.5px; letter-spacing: 0.05em; font-variant-numeric: tabular-nums; }
-.ro-scope { margin-left: auto; align-items: flex-end; }
+.ro-scope { margin-left: auto; }
+.ro-note b { color: var(--dim); }
 .ro-scope canvas { width: 60px; height: 18px; display: block; }
 .ro-desk { display: none; }
 #ro-note.hit { animation: hit 0.5s ease-out; }

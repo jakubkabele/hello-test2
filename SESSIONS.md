@@ -114,6 +114,32 @@ Built:
 - Content is placeholder: log entries, gear, clips (no videos yet), contact links → edit `src/content.js`.
 - Lives on branch `ccr-67fdb530-98eink` (Vercel preview). **Not on `main` yet** — waiting for Kuba's OK.
 
+## 2026-11-16 (cont.) — ORPHEUS 琴: product, not personal site (rebuild step 1)
+
+### Kuba's feedback on the first preview
+- Loves: the model, slow reveal by scrolling, playable strings everywhere, the focus box (auto lock / manual / return), boot sequence, grain + blur.
+- Wrong direction: no personal info (name, journey) — it should look commercial/sellable. Scrolling should show the **exercises**. Opening practice must not break the immersion. Too much small text.
+- Name chosen: **ORPHEUS**, emblem **琴**.
+
+### Plan (4 steps, Kuba tests after each)
+1. ✅ New scroll menu + amp + recorder pedal + stage, Tuner in-world.
+2. ⏭ Clean chord check + chord change drill in-world (fretboard).
+3. Rhythm + Find the note in-world (body).
+4. Log (pedal), sensitivity (amp knobs), red full-screen "alert" as the pause screen.
+
+### Built in step 1
+- All personal content removed; HUD = 琴 ORPHEUS + sound switch + index + thin bottom strip. Focus frame shows only state + target. LINK button removed (exercises use the mic now).
+- Scroll stops: hero "IT HEARS YOU." → Tuner (headstock) → Chords (fretboard, Em shown) → Time & pitch (body) → Amp → Recorder pedal → Stage ("coming soon" podium + spotlights). Cards open an exercise in-world (`open`), bridge to the old screen (`href`) or show SOON.
+- New 3D props: amp (5 knobs for the future sensitivity setting), recorder pedal (turning reels), podium + light beams.
+- **Tuner in-world**: camera glides to the back of the headstock, scroll locks, site goes silent. Mic → pitch → nearest open string (or the one picked) → cents, steadied by taking the middle of the last 5 readings. Focus window locks onto that string's peg, the peg turns with the error, the string shakes. In tune for 0.7 s (tolerance from the sensitivity level) = string ticked. Writes a log entry like the old tuner.
+
+### Tests (cloud)
+- Fake 110 Hz pluck as mic → "A, +3 ¢, In tune", window on PEG 5, string ticked, log "Tuned 1 of 6 strings"; scroll locked while open; exit returns to the stop. No console errors at 390×844 and 360×680.
+
+### Open
+- Not tested on a real phone/guitar (tuner feel, peg direction, frame rate with amp + pedal).
+- Chords / Rhythm / Find the note / Log / Sensitivity cards still open the old plain screens.
+- Still on branch `ccr-67fdb530-98eink` (preview). Not on `main`.
+
 ## Next step
-**Site:** Kuba tests the preview on his phone → fix what he reports → real content in `src/content.js` → merge to `main`.
-**Practice app:** v2 step 6 — Today's session (adaptive rules) + Markdown export (blueprint v2). Also queued: drill "Fast changes" mode (see TODO above).
+Kuba tests step 1 on the preview → fixes → **step 2: chord check + chord change drill in-world**.

@@ -8,7 +8,7 @@
 //  • otherwise it sways with phone tilt (gyroscope), or drifts slowly by itself
 //  • hold anywhere → the whole picture pulls into focus
 
-import { S, bus, clamp, lerp, damp, pad } from './state.js';
+import { S, bus, clamp, lerp, damp } from './state.js';
 import { SHOTS } from '../config/shots.js';
 import { homeRect } from './layout.js';
 import { PARTS } from '../content.js';
@@ -17,7 +17,7 @@ const SNAP_PARTS = ['headstock', 'frets', 'pickups', 'bridge', 'controls'];
 
 export function createFocus({ frame }) {
   const $ = (sel) => frame.querySelector(sel);
-  const el = { state: $('.fw-state'), tgt: $('.fw-tgt'), xy: $('.fw-xy'), dim: $('.fw-dim'), blur: $('.fw-blur') };
+  const el = { state: $('.fw-state'), tgt: $('.fw-tgt') };
 
   const cur = { cx: 0, cy: 0, w: 0, h: 0 };
   let ready = false;
@@ -145,11 +145,10 @@ export function createFocus({ frame }) {
     textClock += dt;
     if (textClock > 0.11) {
       textClock = 0;
-      const part = target && PARTS[target];
-      el.tgt.textContent = part ? `TGT ${part.en} ${part.jp}` : 'TGT — FREE 自由';
-      el.xy.textContent = `X${pad((cur.cx / S.vw) * 1000, 3)} Y${pad((cur.cy / S.vh) * 1000, 3)}`;
-      el.dim.textContent = `${w}×${h}`;
-      el.blur.textContent = `DEFOCUS ${pad((1 - S.pull) * 100, 3)}%`;
+      const peg = target && target.startsWith('peg') ? ` ${6 - +target.slice(3)}` : '';
+      const part = target && (PARTS[target] || (peg && PARTS.peg));
+      const text = part ? `${part.en}${peg} ${part.jp}` : 'FREE 自由';
+      if (text !== el.tgt.textContent) el.tgt.textContent = text;
     }
   }
 

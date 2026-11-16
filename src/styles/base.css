@@ -34,6 +34,7 @@ html {
   scrollbar-width: none;
 }
 html::-webkit-scrollbar { display: none; }
+html.is-locked, html.is-locked body { overflow: hidden; }   /* inside an exercise the page doesn't scroll */
 
 body {
   margin: 0;
@@ -106,7 +107,7 @@ ol, ul { list-style: none; }
 .fw-top { position: absolute; left: -1px; bottom: calc(100% + 7px); white-space: nowrap; }
 .fw-top b { font-weight: 500; background: var(--paper); color: var(--void); padding: 2px 4px 1px; margin-right: 4px; }
 .fw[data-state='LOCK'] .fw-state { color: var(--amber); }
-.fw-tgt { position: absolute; left: -1px; top: calc(100% + 8px); white-space: nowrap; font-family: var(--m); }
+.fw-tgt { position: absolute; left: -1px; top: calc(100% + 8px); white-space: nowrap; font-family: var(--m); color: var(--dim); }
 .fw-blur { position: absolute; left: -1px; top: calc(100% + 21px); white-space: nowrap; color: var(--dim); }
 .fw-in { position: absolute; left: 5px; right: 5px; bottom: 5px; display: flex; justify-content: space-between; color: rgba(233, 231, 242, 0.8); text-shadow: 0 0 3px var(--void); }
 .fw.is-wide .fw-tgt, .fw.is-wide .fw-blur { display: none; }

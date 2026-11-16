@@ -16,6 +16,8 @@ export const S = {
   hold: 0,              // 0–1 progress through the current shot's hold
   transit: 0,           // 0–1 peak in the middle of a chapter change
   chapter: 0,
+  exercise: null,       // name of the open exercise (or null)
+  exK: 0,               // 0 = scroll menu … 1 = fully inside the exercise
 
   // focus window (CSS px) + how sharp it is, and the global "pull into focus"
   win: { x: 0, y: 0, w: 0, h: 0, focus: 1, mode: 'SEEK', target: 'pickups' },

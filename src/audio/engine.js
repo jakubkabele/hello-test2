@@ -16,6 +16,7 @@ let analyser = null;
 let wave = null;
 let humGain = null;
 let humFilter = null;
+let ducked = false;
 const cache = new Map();
 const KEY = 'site.muted';
 
@@ -183,8 +184,14 @@ export const audio = {
   setMuted(m) {
     S.muted = !!m;
     try { localStorage.setItem(KEY, S.muted ? '1' : '0'); } catch { /* ignore */ }
-    if (master) master.gain.setTargetAtTime(S.muted ? 0 : 1, ctx.currentTime, 0.04);
+    if (master) master.gain.setTargetAtTime(S.muted || ducked ? 0 : 1, ctx.currentTime, 0.04);
     bus.emit('mute', S.muted);
+  },
+
+  // silence everything the site itself plays (used while an exercise listens to the mic)
+  duck(on) {
+    ducked = !!on;
+    if (master) master.gain.setTargetAtTime(ducked || S.muted ? 0 : 1, ctx.currentTime, 0.04);
   },
 
   setOverdrive(on) {

@@ -34,6 +34,8 @@ const DEFAULT_ANCHORS = {
   body: [0, -1.3, 0.25],
   controls: [1.0, -2.25, 0.3],
   center: [0, G.CENTER_Y, 0],
+  amp: [6.4, -1.15, 0.5],
+  pedal: [-3.9, -2.2, 0.4],
 };
 
 // How far each part travels in the exploded view (x, y, z)
@@ -112,13 +114,13 @@ function makeDecal() {
     c.clearRect(0, 0, 256, 256);
     c.fillStyle = 'rgba(233,231,242,0.9)';
     c.textBaseline = 'alphabetic';
-    c.font = '150px "Anton", Impact, sans-serif';
-    c.fillText('01', 6, 170);
+    c.font = '800 150px "Shippori Mincho", serif';
+    c.fillText('琴', 2, 160);
     c.fillRect(8, 184, 150, 3);
     c.font = '500 17px "IBM Plex Mono", monospace';
-    c.fillText('STRING UNIT', 8, 210);
-    c.font = '800 20px "Shippori Mincho", serif';
-    c.fillText('弦楽器 零壱', 8, 238);
+    c.fillText('ORPHEUS', 8, 210);
+    c.font = '800 18px "Shippori Mincho", serif';
+    c.fillText('オルフェウス', 8, 238);
     // hazard strip
     c.save();
     c.beginPath(); c.rect(170, 60, 22, 178); c.clip();
@@ -358,6 +360,7 @@ function buildProcedural() {
   const headMesh = new THREE.Mesh(headGeo, M.body);
   head.add(headMesh); outline(headMesh, PALETTE.paper, 0.3);
   const posts = [];
+  const pegs = [];
   for (let i = 0; i < 6; i++) {
     const px = -0.2 + i * 0.07;
     const py = 5.3 + i * 0.225;
@@ -368,11 +371,18 @@ function buildProcedural() {
     washer.position.set(px, py, 0.222);
     const housing = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.16, 0.08), M.metal);
     housing.position.set(px - 0.02, py, -0.01);
+    // the peg (shaft + button) is its own group so the tuner can turn it
+    const peg = new THREE.Group();
+    peg.position.set(px - 0.24, py + 0.045, -0.01);
     const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.3, 6), M.metal);
-    shaft.rotation.z = Math.PI / 2; shaft.position.set(px - 0.24, py + 0.045, -0.01);
+    shaft.rotation.z = Math.PI / 2;
     const button = new THREE.Mesh(new THREE.SphereGeometry(0.085, 10, 8), M.knob);
-    button.scale.set(0.75, 1, 0.42); button.position.set(px - 0.42, py + 0.045, -0.01);
-    head.add(post, washer, housing, shaft, button);
+    button.scale.set(0.75, 1, 0.42); button.position.set(-0.18, 0, 0);
+    const mark = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.012, 0.08), M.amber);
+    mark.position.set(-0.18, 0, 0);
+    peg.add(shaft, button, mark);
+    pegs.push(peg);
+    head.add(post, washer, housing, peg);
   }
   const headMark = new THREE.Mesh(new THREE.PlaneGeometry(0.03, 0.5), M.amber);
   headMark.position.set(0.2, 6.1, 0.222); headMark.rotation.z = -0.1;
@@ -402,14 +412,88 @@ function buildProcedural() {
     labels.push(l); redraws.push(l.userData.redraw);
   };
   addLabel(head, ['HS-01  TUNERS ×6', 'ヘッド／糸巻', 'RATIO 18:1'], [0.3, 6.3, 0.22], [0.75, 6.5, 0.3]);
-  addLabel(neck, ['NK-02  22 FRETS', '指板', 'SCALE 648 MM'], [0.3, 3.2, 0.3], [0.7, 3.4, 0.35]);
   addLabel(pickups, ['PU-A  NECK', 'ピックアップ', '7.9 kΩ'], [-0.5, -0.18, 0.3], [-1.0, 0.36, 0.5], { align: 'right' });
-  addLabel(pickups, ['PU-B  BRIDGE', 'ピックアップ', '8.6 kΩ'], [0.5, -1.06, 0.3], [1.95, -0.7, 0.5]);
   addLabel(bridge, ['BR-03  SADDLES', 'ブリッジ', 'ACTION 1.8 MM'], [-0.5, -1.7, 0.3], [-1.1, -1.5, 0.5], { align: 'right' });
-  addLabel(controls, ['CT-04  VOL / TONE', '操作部', '500K'], [1.25, -2.34, 0.4], [1.9, -2.2, 0.5]);
-  addLabel(body, ['BD-00  BODY', 'ボディ', 'MASS 3.4 KG'], [-1.6, -2.6, 0.1], [-2.05, -3.0, 0.2], { align: 'right' });
 
-  return { model, parts, nutPts, saddlePts, labels, redraws, anchors: DEFAULT_ANCHORS };
+  // ── Amplifier (songs + settings live here) ──
+  const amp = part('amp');
+  amp.position.set(6.4, -1.15, -0.7);
+  amp.rotation.y = -0.18;
+  const cab = new THREE.Mesh(new THREE.BoxGeometry(5.0, 4.6, 2.2), mat(0x15172e, 0.7, 0.05));
+  amp.add(cab); outline(cab, PALETTE.paper, 0.35);
+  // speaker cloth: a dotted grid drawn once into a texture
+  const gc = document.createElement('canvas'); gc.width = gc.height = 256;
+  const g2 = gc.getContext('2d');
+  g2.fillStyle = '#23274f'; g2.fillRect(0, 0, 256, 256);
+  g2.fillStyle = '#4a5a8c';
+  for (let y = 0; y < 256; y += 8) for (let x = (y / 8) % 2 ? 4 : 0; x < 256; x += 8) g2.fillRect(x, y, 3, 3);
+  g2.strokeStyle = 'rgba(233,231,242,0.5)'; g2.lineWidth = 3;
+  g2.beginPath(); g2.arc(128, 128, 88, 0, 7); g2.stroke();
+  g2.beginPath(); g2.arc(128, 128, 30, 0, 7); g2.stroke();
+  const grille = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 3.0), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(gc) }));
+  grille.position.set(0, -0.5, 1.105); amp.add(grille);
+  const panel = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.7, 0.06), M.metal);
+  panel.position.set(0, 1.65, 1.12); amp.add(panel); outline(panel, 0xffffff, 0.3);
+  const ampKnobs = [];
+  for (let i = 0; i < 5; i++) {
+    const k = new THREE.Group();
+    const cyl = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.2, 18), M.dark);
+    cyl.rotation.x = Math.PI / 2;
+    const tick = new THREE.Mesh(new THREE.PlaneGeometry(0.035, 0.17), M.amber);
+    tick.position.set(0, 0.1, 0.102);
+    k.add(cyl, tick);
+    k.position.set(-1.5 + i * 0.62, 1.65, 1.25);
+    k.rotation.z = 0.9 - i * 0.45;
+    amp.add(k); ampKnobs.push(k);
+  }
+  const lamp = new THREE.Mesh(new THREE.CircleGeometry(0.09, 14), M.amber);
+  lamp.position.set(1.85, 1.65, 1.152); amp.add(lamp);
+  const handle = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.12, 0.35), M.dark);
+  handle.position.set(0, 2.42, 0); amp.add(handle);
+  [[-2.5, -2.3], [2.5, -2.3], [-2.5, 2.3], [2.5, 2.3]].forEach(([x, y]) => {
+    const c = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.34, 2.26), M.metal);
+    c.position.set(x * 0.985, y * 0.985, 0); amp.add(c);
+  });
+
+  // ── Recorder pedal (the practice log lives here) ──
+  const pedal = part('pedal');
+  pedal.position.set(-3.9, -2.2, 0.1);
+  pedal.rotation.set(-0.25, 0.2, 0.06);
+  const pbody = new THREE.Mesh(new THREE.BoxGeometry(1.7, 2.5, 0.5), mat(0x5a4f8c, 0.5, 0.15));
+  pedal.add(pbody); outline(pbody, PALETTE.paper, 0.45);
+  const reels = [];
+  [-0.4, 0.4].forEach((x) => {
+    const reel = new THREE.Group();
+    reel.add(new THREE.Mesh(new THREE.RingGeometry(0.1, 0.3, 20), M.dark));
+    for (let k = 0; k < 3; k++) { const sp = new THREE.Mesh(new THREE.PlaneGeometry(0.05, 0.56), M.knob); sp.rotation.z = (k * Math.PI) / 3; sp.position.z = 0.002; reel.add(sp); }
+    reel.position.set(x, 0.55, 0.256); pedal.add(reel); reels.push(reel);
+  });
+  const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.27, 0.22, 18), M.metal);
+  foot.rotation.x = Math.PI / 2; foot.position.set(0, -0.65, 0.34); pedal.add(foot);
+  const led = new THREE.Mesh(new THREE.CircleGeometry(0.06, 12), M.amber);
+  led.position.set(0, -0.15, 0.256); pedal.add(led);
+  const strip = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.05), M.knob);
+  strip.position.set(0, 0.05, 0.256); pedal.add(strip);
+
+  // ── Stage: podium + spotlights (only raised for the "coming soon" stop) ──
+  const stage = part('stage');
+  const podium = new THREE.Mesh(new THREE.CylinderGeometry(3.4, 3.8, 0.5, 6), mat(0x15172e, 0.6, 0.1));
+  podium.position.set(0, G.BOTTOM_Y - 0.3, 0); stage.add(podium); outline(podium, PALETTE.paper, 0.5, 1);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(3.42, 0.025, 4, 6), M.amber);
+  rim.rotation.x = Math.PI / 2; rim.rotation.z = Math.PI / 6; rim.position.set(0, G.BOTTOM_Y - 0.04, 0); stage.add(rim);
+  const beams = [];
+  [[-3.6, 0.5, 0x8a78c8], [3.6, -0.5, 0x4a5a8c], [0, 0, 0xe9e7f2]].forEach(([x, tilt, color], k) => {
+    const cone = new THREE.Mesh(
+      new THREE.ConeGeometry(k === 2 ? 2.2 : 1.7, 14, 20, 1, true),
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.13, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }),
+    );
+    cone.position.set(x * 0.5, G.BOTTOM_Y + 7, k === 2 ? -1.5 : 0);
+    cone.rotation.z = tilt * 0.5;
+    stage.add(cone); beams.push(cone);
+  });
+  stage.visible = false;
+
+  return { model, parts, nutPts, saddlePts, labels, redraws, anchors: DEFAULT_ANCHORS, pegs, ampKnobs, reels, beams };
 }
 
 // A real model, wrapped so it behaves like the procedural one.
@@ -451,7 +535,7 @@ async function buildFromGLB(url) {
   const stringsGroup = new THREE.Group();
   model.add(stringsGroup);
   parts.strings = stringsGroup;
-  return { model, parts, nutPts, saddlePts, labels: [], redraws: [], anchors };
+  return { model, parts, nutPts, saddlePts, labels: [], redraws: [], anchors, pegs: [], ampKnobs: [], reels: [], beams: [] };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -604,13 +688,32 @@ export async function loadGuitar({ modelUrl = null } = {}) {
       chordMarks.forEach((m) => { m.dot.scale.setScalar(k); m.open.scale.setScalar(k); });
     }
     if (liveMark.visible) liveMark.rotation.z += dt * 2;
+    pegs.forEach((pg, i) => { pg.rotation.x += (pegTarget[i] - pg.rotation.x) * Math.min(1, dt * 8); });
+    if (!calm) built.reels.forEach((r, i) => { r.rotation.z += dt * (i ? -0.6 : 0.6); });
     return energy;
   }
 
   const redrawText = () => redraws.forEach((fn) => fn());
 
+  // tuning pegs: turn one to an angle (radians); each also gets a focus anchor "peg0"…"peg5"
+  const pegs = built.pegs;
+  const pegTarget = pegs.map(() => 0);
+  pegs.forEach((pg, i) => { anchors[`peg${i}`] = new THREE.Vector3(pg.position.x - 0.1, pg.position.y - G.CENTER_Y, 0.1); });
+  function setPeg(i, angle) { if (pegs[i]) pegTarget[i] = angle; }
+
+  // podium + spotlights
+  let stageK = 0;
+  function setStage(k) {
+    if (!parts.stage || Math.abs(k - stageK) < 1e-3) return;
+    stageK = k;
+    parts.stage.visible = k > 0.01;
+    parts.stage.scale.set(1, 1, 1);
+    parts.stage.position.y = -(1 - k) * 2.5;
+    built.beams.forEach((b) => { b.material.opacity = 0.13 * k; });
+  }
+
   // Where a named part is right now (root space) — follows the exploded view.
-  const PART_OF = { headstock: 'head', frets: 'neck', neck: 'neck', pickups: 'pickups', bridge: 'bridge', body: 'body', controls: 'controls' };
+  const PART_OF = { peg0: 'head', peg1: 'head', peg2: 'head', peg3: 'head', peg4: 'head', peg5: 'head', headstock: 'head', frets: 'neck', neck: 'neck', pickups: 'pickups', bridge: 'bridge', body: 'body', controls: 'controls' };
   function anchorAt(name, out) {
     out.copy(anchors[name] || anchors.center);
     const v = EXPLODE[PART_OF[name]];
@@ -621,5 +724,5 @@ export async function loadGuitar({ modelUrl = null } = {}) {
     return out;
   }
 
-  return { root, model, parts, anchors, anchorAt, strings, hit, pluck, sustain, setChord, setLive, setExplode, update, redrawText };
+  return { root, model, parts, anchors, anchorAt, setPeg, setStage, ampKnobs: built.ampKnobs, strings, hit, pluck, sustain, setChord, setLive, setExplode, update, redrawText };
 }

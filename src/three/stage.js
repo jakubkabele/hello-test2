@@ -116,6 +116,7 @@ export async function createStage({ canvas, modelUrl = null }) {
 
     // exploded view first (anchors move with the parts)
     guitar.setExplode(lerp(a.explode || 0, b.explode || 0, e));
+    guitar.setStage(lerp(a.stage || 0, b.stage || 0, e));
 
     // rotation: shot → shot, plus the user's drag, a slow idle sway and tilt parallax
     shotQuat(i, S.hold, qA);
@@ -224,10 +225,12 @@ export async function createStage({ canvas, modelUrl = null }) {
   // text drawn into textures needs the web fonts to be ready
   if (document.fonts && document.fonts.load) {
     Promise.all([
-      document.fonts.load('150px "Anton"', '01'),
+      document.fonts.load('800 150px "Shippori Mincho"', '琴オルフェウス'),
       document.fonts.load('500 19px "IBM Plex Mono"', 'A'),
       document.fonts.load('800 15px "Shippori Mincho"', 'ヘッド糸巻指板ピックアップブリッジ操作部ボディ弦楽器零壱／'),
     ]).then(() => guitar.redrawText()).catch(() => {});
+    // the Japanese font slices arrive late; redraw whenever any font lands
+    if (document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', () => guitar.redrawText());
   }
 
   S.hasGL = true;

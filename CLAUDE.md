@@ -1,15 +1,17 @@
-# Kuba's guitar site + practice app (repo: hello-test2)
+# ORPHEUS 琴 — a guitar that listens (repo: hello-test2)
 
 ## Purpose
-Two things live in this repo, on one address:
+**ORPHEUS** is a guitar practice product (no personal info anywhere — it should be sellable).
+One immersive 3D world: you scroll along a guitar rig and each stop holds exercises, which open
+*inside* that world. The 3D guitar silently copies what the mic hears.
 
-1. **The site** (`/`) — my personal guitar site: an immersive, scroll-driven "command centre"
-   around a 3D guitar you can play. Sections: hero, practice log, chord bank, clips, gear, contact.
-2. **The practice app** (`/practice/`) — a phone-first practice partner that listens to me play:
-   tuner, chord checks, chord change drills, and (later) a guided daily session built from my log.
-
+- Scroll stops: 00 hero · 01 Tuner (headstock) · 02 Chords (fretboard) · 03 Rhythm + Find the note (body)
+  · 04 Amp (sensitivity, songs) · 05 Recorder pedal (log) · 06 Stage (coming soon).
+- **Being rebuilt into the new style, one step at a time** (see `SESSIONS.md`). Until an exercise is
+  rebuilt, its card links to the old plain screens at `/practice/` (the original app, untouched).
+- Emblem 琴 (koto/lyre), kana オルフェウス. Keep small text to a minimum — Kuba finds it cluttered.
 - Live: https://hello-test2-inky.vercel.app
-- Blueprints (practice app): `docs/blueprint-v1.md` (tuner, done) and `docs/blueprint-v2.md` (practice sessions, in progress)
+- Blueprints (exercise behaviour): `docs/blueprint-v1.md`, `docs/blueprint-v2.md`
 - Session history + next step: `SESSIONS.md` — read its last section first.
 
 ## About me
@@ -32,23 +34,24 @@ Two things live in this repo, on one address:
 ### Where things are
 | File | What it does |
 |---|---|
-| `src/content.js` | **All the words** (titles, log entries, chords, clips, gear, links). Edit only this to change content. |
-| `src/config/shots.js` | The scroll storyboard: per "shot" where the focus window rests, which guitar part is pinned there, guitar size/rotation, exploded view |
+| `src/content.js` | **All the words** (name, stops, cards, exercise texts). A card has `open` (in-world exercise), `href` (old screen bridge) or `soon`. |
+| `src/config/shots.js` | The scroll storyboard: per "shot" where the focus window rests, which part is pinned there, size/rotation; plus `ex:` shots = camera while an exercise is open |
 | `index.html` | Page shell + start-up screen markup |
 | `src/main.js` | Entry: builds chapters from content, starts boot, lazy-loads the 3D stage, runs the frame loop |
 | `src/core/state.js` | `S` = shared live state (scroll position, focus window rect, sound level…) + tiny event `bus` |
-| `src/core/director.js` | Scroll → current shot/chapter (Lenis + ScrollTrigger); scrubs each chapter's entrance timeline |
+| `src/core/director.js` | Scroll → current shot/chapter (Lenis + ScrollTrigger); scrubs each chapter's entrance timeline; `enter(name)` / `exit()` an exercise (locks scroll, glides camera) |
 | `src/core/focus.js` | **Focus window** controller: home / cursor follow / touch drag / gyro tilt / drift / snap to guitar parts / hold-to-focus; moves the HTML frame |
 | `src/core/input.js` | Touch + mouse on the stage: strings (tap/strum), drag window, rotate, hold |
 | `src/core/layout.js` | Viewport sizes + `homeRect(shot)` |
 | `src/three/stage.js` | Renderer, camera, lights, per-frame guitar pose, quality tiers (low/mid/high, auto step-down) |
-| `src/three/guitar.js` | Procedural guitar from primitives, vibrating strings, chord dots, exploded view, in-scene labels. `.glb` swap notes at the top |
+| `src/three/guitar.js` | Procedural guitar + amp + recorder pedal + stage podium; vibrating strings, chord dots, turnable pegs (`setPeg`), anchors (`amp`, `pedal`, `peg0–5`…). `.glb` swap notes at the top |
 | `src/three/guitar-math.js` | Fret / string positions (no Three.js, used by input too) |
 | `src/three/backdrop.js` | Background shader (colour field, hex grid, range rings, pluck ripple) + dust |
 | `src/three/post.js` | Blur chain + final pass: sharp inside the window, blurred outside; grain, colour fringing, scanlines, vignette |
-| `src/audio/engine.js` | Web Audio: Karplus–Strong plucks, ambient hum, UI blips, mute (key `site.muted`), overdrive |
-| `src/audio/livelink.js` | LIVE LINK: mic → YIN pitch (ported from the practice app) → string/fret on the 3D guitar |
-| `src/chapters/*.js` | One file per chapter (HTML from content + its interactions); `common.js` = shared title/tag/entrance |
+| `src/audio/engine.js` | Web Audio: Karplus–Strong plucks, ambient hum, UI blips, mute (key `site.muted`), `duck()` = silent while an exercise listens, overdrive |
+| `src/audio/livelink.js` | Mic → YIN pitch → `bus` event `live` (hz, level…). Exercises start/stop it |
+| `src/chapters/*.js` | `hero.js`, `stop.js` (one generic scroll stop: title + cards), `common.js` = shared title/tag/entrance |
+| `src/exercises/*.js` | Exercises that run in the 3D world. `tuner.js` done (mic → nearest open string → cents; peg turns, string shakes, logs to `practice.log.v1`) |
 | `src/ui/*.js` | `hud` (index, readouts, toggles), `boot`, `cursor`, `keys`, `eggs` (3 hidden things, listed at the top of the file) |
 | `src/styles/*.css` | `base` (tokens, focus frame, boot, grain), `hud`, `chapters` (phone first, desktop at the bottom) |
 | `public/clips/` | Put practice videos here, then reference them in `content.js` |
@@ -58,10 +61,12 @@ Two things live in this repo, on one address:
 - Layout drives the 3D: a shot says where the window rests; the guitar is moved so the named part sits under it.
 - Chapters are fixed layers; `#track` only provides scroll length. No nested scrolling.
 - Vertical swipes must always scroll. Sideways drag = rotate / move window; hold = focus.
+- While an exercise listens the site makes no sound (`audio.duck(true)`); the guitar only mirrors.
+- Exercises share data with the old screens: log `practice.log.v1`, sensitivity `practice.settings.v1` (`sensitivity` 1–5).
 - Quality: `?q=low|mid|high` pins the render tier; `?debug` exposes `window.__site`.
 - Real phone heights are short (≈680–800 px with the address bar): check `@media (max-height: 760px)` when adding content.
 
-## The practice app (`/practice/`)
+## The old screens (`/practice/`) — reference + temporary bridge
 
 ### Tech
 - Static files in `public/practice/` — no framework, **no build step** (Vite copies the folder as-is).

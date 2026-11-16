@@ -25,6 +25,7 @@ import { runBoot } from './ui/boot.js';
 import { createCursor } from './ui/cursor.js';
 import { createKeys } from './ui/keys.js';
 import { createEggs } from './ui/eggs.js';
+import { createTuner } from './exercises/tuner.js';
 
 document.title = content.site.pageTitle;
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
@@ -42,7 +43,7 @@ const host = document.getElementById('chapters');
 const layers = {};
 chapters.forEach((ch) => {
   const el = document.createElement('section');
-  el.className = `ch ch-${ch.id}`;
+  el.className = `ch ch-${ch.id} ${ch.className || ''}`;
   el.dataset.ch = ch.id;
   el.innerHTML = ch.html(content[ch.id], content.site);
   host.appendChild(el);
@@ -68,11 +69,14 @@ chapters.forEach((ch) => { timelines[ch.id] = ch.timeline(layers[ch.id]); });
 const director = createDirector({ track: document.getElementById('track'), layers, timelines });
 const focus = createFocus({ frame });
 const input = createInput({ canvas, frame, focus, getStage: () => stage });
-const hud = createHud({ root: document.getElementById('hud'), content, audio, director, liveLink });
+const hud = createHud({ root: document.getElementById('hud'), content, audio, director });
 const cursor = createCursor(document.getElementById('cursor'));
 createKeys({ director, audio, focus, hud, input });
 createEggs({ hud, audio });
 chapters.forEach((ch) => ch.mount(layers[ch.id], { content, audio, focus, director }));
+
+// exercises that run inside the 3D world
+createTuner({ root: host, words: content.ex.tuner, liveLink, audio, focus, getStage: () => stage, director });
 director.measure();
 
 // titles are sized to fit — so re-measure whenever a web font finishes arriving
@@ -104,7 +108,7 @@ if (document.fonts) {
 bus.on('chord', (frets) => stage && stage.guitar.setChord(frets));
 bus.on('visual-pluck', (p) => { if (stage) stage.guitar.pluck(p.string, 0.9, p.fret); bus.emit('pluck', { string: p.string, fret: p.fret, midi: [40, 45, 50, 55, 59, 64][p.string] + p.fret, vel: 0.7 }); });
 bus.on('live', (d) => {
-  if (!stage) return;
+  if (!stage || S.exercise) return;   // an open exercise drives the guitar itself
   if (d && d.string !== null && d.string !== undefined) {
     stage.guitar.sustain(d.string, clamp(d.level * 9, 0.35, 1), d.fret);
     stage.guitar.setLive(d.string, d.fret);

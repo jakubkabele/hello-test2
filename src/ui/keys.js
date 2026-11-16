@@ -8,7 +8,7 @@ export function createKeys({ director, audio, focus, hud, input }) {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     if (k !== 'Tab' && k !== 'Enter') audio.unlock();
-    if (k >= '1' && k <= '6') { director.goTo(+k - 1); audio.blip('nav'); return; }
+    if (k >= '1' && k <= '7') { director.goTo(+k - 1); audio.blip('nav'); return; }
     if (k in STRING_KEYS) {
       if (e.repeat) return;
       const i = STRING_KEYS[k];
@@ -21,12 +21,11 @@ export function createKeys({ director, audio, focus, hud, input }) {
       case 'ArrowDown': case 'j': case ' ': case 'PageDown': e.preventDefault(); director.step(1); break;
       case 'ArrowUp': case 'k': case 'PageUp': e.preventDefault(); director.step(-1); break;
       case 'Home': e.preventDefault(); director.goTo(0); break;
-      case 'End': e.preventDefault(); director.goTo(5); break;
+      case 'End': e.preventDefault(); director.goTo(99); break;
       case 'm': audio.setMuted(!S.muted); audio.blip(S.muted ? 'off' : 'on'); hud.paintSound(); break;
       case 'x': if (!e.repeat) focus.setPull(true); break;
-      case 'l': hud.toggleLive(); break;
       case '?': case '/': hud.toggleHelp(); break;
-      case 'Escape': hud.toggleHelp(false); break;
+      case 'Escape': hud.toggleHelp(false); director.exit(); break;
       default:
     }
   });
