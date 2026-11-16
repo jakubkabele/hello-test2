@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0E0E0E">
+  <title>Practice</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <button id="back" class="back" aria-label="Back" hidden>‹</button>
+      <span id="title" class="title">Home</span>
+      <a id="gear" class="gear" href="#/settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"/><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.6-2-3.4-2.4 1a7.5 7.5 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5A7.5 7.5 0 0 0 7 6.5l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 3l-2 1.6 2 3.4 2.4-1a7.5 7.5 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.5 7.5 0 0 0 2.6-1.5l2.4 1 2-3.4-2-1.6Z"/></svg>
+      </a>
+    </header>
+
+    <!-- ========== Home ========== -->
+    <section class="screen" data-screen="home">
+      <a class="today" href="#/today">
+        <span>
+          <span class="today-label">Today's session</span>
+          <span class="today-sub">Guided, based on your log</span>
+        </span>
+        <span class="today-play">▶</span>
+      </a>
+
+      <h2 class="section">Exercises</h2>
+      <nav class="list">
+        <a href="#/exercise/clean-check">Clean chord check<span class="chev">›</span></a>
+        <a href="#/exercise/change-drill">Chord change drill<span id="drill-paused" class="count" hidden>paused</span><span class="chev">›</span></a>
+        <a href="#/exercise/find-note">Find the note<span class="chev">›</span></a>
+        <a href="#/exercise/rhythm">Rhythm<span class="chev">›</span></a>
+        <a href="#/tuner">Tuner<span class="chev">›</span></a>
+      </nav>
+
+      <nav class="list list-gap">
+        <a href="#/songs">Songs<span class="chev">›</span></a>
+        <a href="#/log">Log<span id="log-count" class="count"></span><span class="chev">›</span></a>
+      </nav>
+    </section>
+
+    <!-- ========== Coming soon (placeholder for unbuilt screens) ========== -->
+    <section class="screen" data-screen="soon">
+      <div class="soon">
+        <p id="soon-text" class="soon-text"></p>
+        <a class="link-btn" href="#/">Back to home</a>
+      </div>
+    </section>
+
+    <!-- ========== Settings ========== -->
+    <section class="screen" data-screen="settings">
+      <h2 class="section">Listening sensitivity</h2>
+      <p class="sens-intro">How picky the app is when it listens — for the tuner, the chord check and every exercise that listens. Lower = more forgiving and steadier. Higher = more exact.</p>
+      <div id="sens-list" class="sens-list" role="radiogroup" aria-label="Listening sensitivity"></div>
+      <p class="sens-intro">Changes apply right away, even mid-exercise.</p>
+      <h2 class="section">Timing</h2>
+      <p class="sens-intro"><span id="cal-info"></span></p>
+      <button id="cal-redo" class="link-btn">Calibrate timing</button>
+    </section>
+
+    <!-- ========== Log ========== -->
+    <section class="screen" data-screen="log">
+      <div id="log-list"></div>
+      <p id="log-empty" class="empty" hidden>
+        Nothing logged yet.<br>Finished exercises will show up here.
+      </p>
+    </section>
+
+    <!-- ========== Clean chord check ========== -->
+    <section class="screen cc" data-screen="clean-check">
+      <div class="segs">
+        <div class="seg">
+          <button data-cc-mode="strum">Strum</button>
+          <button data-cc-mode="string">String by string</button>
+        </div>
+        <div class="seg">
+          <button data-cc-pick="auto">Auto chord</button>
+          <button data-cc-pick="manual">Pick chord</button>
+        </div>
+      </div>
+      <div class="chips"></div>
+      <div class="cc-name"></div>
+      <svg class="cc-diagram" viewBox="0 0 240 320" role="img" aria-label="Chord diagram"></svg>
+      <div class="cc-text" aria-live="polite">
+        <p class="cc-prompt"></p>
+        <p class="cc-sub"></p>
+        <ul class="cc-problems"></ul>
+        <p class="cc-note" hidden>Faded ✓ = same note as a lower string (an octave up), so it hides inside a strum. Tap “Check hidden strings” to pluck just those (automatic at sensitivity 4–5).</p>
+        <button class="link-btn cc-spot" hidden></button>
+      </div>
+      <button class="start cc-start">Start</button>
+      <p class="error" hidden></p>
+    </section>
+
+    <!-- ========== Chord change drill ========== -->
+    <section class="screen drill" data-screen="change-drill">
+      <div class="dr-setup">
+        <div class="seg seg-4">
+          <button data-group="warmup">Warm-up</button>
+          <button data-group="barre1">Open→barre</button>
+          <button data-group="barre2">Barre→barre</button>
+          <button data-group="custom">Custom</button>
+        </div>
+        <p class="dr-group-hint"></p>
+        <div class="dr-pairs"></div>
+        <div class="dr-custom" hidden>
+          <select class="dr-from" aria-label="First chord"></select>
+          <span>↔</span>
+          <select class="dr-to" aria-label="Second chord"></select>
+        </div>
+
+        <h2 class="section">Tempo</h2>
+        <div class="dr-tempo">
+          <button class="dr-minus" aria-label="Slower">−</button>
+          <span><span class="dr-bpm">60</span> BPM</span>
+          <button class="dr-plus" aria-label="Faster">+</button>
+        </div>
+        <p class="dr-label">Change chord every</p>
+        <div class="seg">
+          <button data-beats="4">4 beats</button>
+          <button data-beats="2">2 beats</button>
+          <button data-beats="1">1 beat</button>
+        </div>
+        <label class="dr-toggle"><input type="checkbox" class="dr-auto"> Raise tempo when I’m consistent</label>
+        <label class="dr-toggle"><input type="checkbox" class="dr-click"> Metronome click</label>
+        <div class="dr-calrow"><span class="dr-cal-info"></span><button class="link-btn dr-recal"></button></div>
+        <button class="start dr-start">Start</button>
+        <p class="error" hidden></p>
+      </div>
+
+      <div class="dr-cal" hidden>
+        <h2 class="section">Timing calibration</h2>
+        <p class="dr-cal-intro">Your phone plays the click a little late and hears your guitar a little late. This measures that delay once, so “on the beat” means on the click you hear.</p>
+        <ol class="dr-cal-steps">
+          <li>Use the setup you practise with (speaker or headphones), metronome sound on.</li>
+          <li>After 4 count-in clicks, strum any chord once on each of the next 8 clicks.</li>
+        </ol>
+        <div class="dr-beat dr-cal-beat"></div>
+        <div class="dr-lights dr-cal-lights" aria-hidden="true"></div>
+        <p class="dr-cal-status"></p>
+        <button class="start dr-cal-go">Start calibration</button>
+        <button class="link-btn dr-cal-skip">Back</button>
+      </div>
+
+      <div class="dr-run" hidden>
+        <div class="dr-top"><span class="dr-time">1:00</span><span class="dr-count">0 clean</span></div>
+        <div class="dr-chords">
+          <div class="dr-chord dr-a"><div class="dr-name"></div><svg class="dr-diag cc-diagram" viewBox="0 0 240 260"></svg></div>
+          <div class="dr-chord dr-b"><div class="dr-name"></div><svg class="dr-diag cc-diagram" viewBox="0 0 240 260"></svg></div>
+        </div>
+        <div class="dr-guide">
+          <div class="dr-beat"></div>
+          <div class="dr-bar"><i></i></div>
+          <div class="dr-lights" aria-hidden="true"></div>
+          <div class="dr-tl" aria-hidden="true">
+            <span class="dr-tl-zone"></span><span class="dr-tl-line"></span><span class="dr-tl-dot" hidden></span>
+          </div>
+          <div class="dr-tl-legend"><span>early</span><span>on the beat</span><span>late</span></div>
+        </div>
+        <p class="dr-status"></p>
+        <p class="dr-howto"></p>
+        <div class="dr-history"></div>
+        <button class="start listening dr-stop">Pause</button>
+        <div class="dr-pause">
+          <div class="dr-pause-title">Paused</div>
+          <p class="dr-pause-text"></p>
+          <p class="dr-pause-progress"></p>
+          <button class="start dr-resume">Resume</button>
+          <button class="link-btn dr-end">End round &amp; save</button>
+          <button class="link-btn dr-discard">Discard round</button>
+        </div>
+      </div>
+
+      <div class="dr-summary" hidden>
+        <div class="dr-big"></div>
+        <div class="dr-unit">clean changes / min</div>
+        <p class="dr-pairname"></p>
+        <p class="dr-compare"></p>
+        <ul class="cc-problems dr-details"></ul>
+        <p class="dr-next"></p>
+        <button class="start dr-again">Go again</button>
+        <button class="link-btn dr-back">Change chords or tempo</button>
+      </div>
+    </section>
+
+    <!-- ========== Find the note ========== -->
+    <section class="screen fn" data-screen="find-note">
+      <div class="segs">
+        <div class="seg">
+          <button data-fn-notes="natural">Natural notes</button>
+          <button data-fn-notes="all">All 12</button>
+        </div>
+      </div>
+      <div class="chips fn-strings"></div>
+      <div class="fn-progress"></div>
+      <div class="fn-note dim">—</div>
+      <p class="fn-where"></p>
+      <p class="fn-heard" aria-live="polite"></p>
+      <ul class="cc-problems fn-results"></ul>
+      <button class="start fn-start">Start</button>
+      <button class="link-btn fn-skip" hidden>Skip this note</button>
+      <p class="error" hidden></p>
+    </section>
+
+    <!-- ========== Rhythm ========== -->
+    <section class="screen rh" data-screen="rhythm">
+      <div class="rh-setup">
+        <div class="rh-patterns"></div>
+        <h2 class="section">Tempo</h2>
+        <div class="dr-tempo">
+          <button class="rh-minus" aria-label="Slower">−</button>
+          <span><span class="rh-bpm">70</span> BPM</span>
+          <button class="rh-plus" aria-label="Faster">+</button>
+        </div>
+        <p class="rh-hint">Hold any chord (or mute the strings) and strum the pattern with the click. ↓ = down-strum, ↑ = up-strum.</p>
+        <div class="dr-calrow"><span class="rh-cal-info"></span><button class="link-btn rh-recal"></button></div>
+        <button class="start rh-start">Start · 1 minute</button>
+        <p class="error" hidden></p>
+      </div>
+      <div class="rh-run" hidden>
+        <div class="dr-top"><span class="rh-time">1:00</span><span class="rh-count"></span></div>
+        <div class="rh-big"></div>
+        <div class="rh-slots"></div>
+        <div class="rh-counts"></div>
+        <div class="dr-tl" aria-hidden="true">
+          <span class="dr-tl-zone"></span><span class="dr-tl-line"></span><span class="dr-tl-dot" hidden></span>
+        </div>
+        <div class="dr-tl-legend"><span>early</span><span>on the beat</span><span>late</span></div>
+        <p class="dr-status rh-status"></p>
+        <p class="dr-howto rh-howto"></p>
+        <button class="start listening rh-stop">Stop</button>
+      </div>
+      <div class="rh-summary" hidden>
+        <div class="dr-big rh-sum-big"></div>
+        <div class="dr-unit">on time</div>
+        <p class="dr-pairname rh-sum-name"></p>
+        <p class="dr-compare rh-sum-compare"></p>
+        <ul class="cc-problems rh-sum-details"></ul>
+        <button class="start rh-again">Go again</button>
+        <button class="link-btn dr-back rh-back">Change pattern or tempo</button>
+      </div>
+    </section>
+
+    <!-- ========== Tuner (v1) ========== -->
+    <section class="screen tuner" data-screen="tuner">
+      <section class="readout" aria-live="polite">
+        <div id="note" class="note silent">—</div>
+        <div id="hz" class="hz">&nbsp;</div>
+      </section>
+
+      <section class="meter">
+        <div class="meter-row">
+          <span class="sym">♭</span>
+          <div class="track">
+            <div class="center-mark"></div>
+            <div id="needle" class="needle"></div>
+          </div>
+          <span class="sym">♯</span>
+        </div>
+        <div id="cents" class="cents">&nbsp;</div>
+      </section>
+
+      <nav class="modes" id="modes">
+        <button class="mode active" data-mode="auto">Auto</button>
+        <button class="mode" data-mode="0">E</button>
+        <button class="mode" data-mode="1">A</button>
+        <button class="mode" data-mode="2">D</button>
+        <button class="mode" data-mode="3">G</button>
+        <button class="mode" data-mode="4">B</button>
+        <button class="mode" data-mode="5">E</button>
+      </nav>
+
+      <button id="start" class="start">Start listening</button>
+      <p id="error" class="error" hidden></p>
+    </section>
+  </div>
+
+  <script src="store.js"></script>
+  <script src="settings.js"></script>
+  <script src="audio.js"></script>
+  <script src="pause.js"></script>
+  <script src="timing.js"></script>
+  <script src="tuner.js"></script>
+  <script src="chords.js"></script>
+  <script src="cleancheck.js"></script>
+  <script src="drill.js"></script>
+  <script src="findnote.js"></script>
+  <script src="rhythm.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

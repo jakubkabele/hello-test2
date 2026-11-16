@@ -85,5 +85,35 @@ Built:
 - Rhythm can't tell down- from up-strums (only timing).
 - Untested on the real guitar: up-strum detection, speaker click, Find the note on low strings through the phone mic.
 
+## 2026-11-16 — The site: immersive front door (practice app moved to `/practice/`)
+
+### What we built
+- The practice app is **unchanged**, now at `/practice/` (files in `public/practice/`). Same address → the log and calibration on the phone are kept.
+- New front door at `/`: a retro-futuristic "command centre" around a **3D guitar built from simple shapes** (Three.js), scroll-driven (GSAP ScrollTrigger + Lenis). Vite build.
+- **Focus window** (signature effect): the scene is drawn once, a shader blurs and grains everything outside one rectangle; inside it the same picture stays sharp. An HTML frame (corner marks, readouts) sits on exactly the same rectangle. It rests on a guitar part per scene, follows the cursor (desktop), can be dragged (touch), sways with phone tilt or drifts, snaps to guitar parts, and hold = whole picture pulls into focus. Scene changes dissolve through blur.
+- 6 chapters / 8 scroll "shots": 01 hero (STILL LEARNING.) → 02 log (headstock, front + back) → 03 chord bank (fretboard; chord dots on the 3D neck) → 04 clips (16:9 window = video screen) → 05 gear (exploded guitar; pickups → bridge) → 06 contact (window fills the screen: everything sharp).
+- **Playable strings**: tap = pluck (fret under the finger counts), swipe across = strum; with a chord selected the strum plays that chord. Sound = Karplus–Strong (noise burst looped at one wavelength, softened each lap). Strings shake, a ripple runs through the hex grid, colour fringing pulses, oscilloscope in the HUD.
+- Sound design: quiet amp hum, UI blips; starts on first tap; `SND` toggle (remembered).
+- HUD: section index on the right edge (+ `PR` → practice app), live readouts (scene, progress, rotation, last note, signal), keyboard shortcuts on desktop (`?` shows them), custom cursor.
+- **Surprise — LIVE LINK** (`LINK` button): the site listens through the mic with the practice app's YIN pitch detector; the matching string shakes on the 3D guitar, a ring marks the fret, the panel shows note / Hz / cents (amber when in tune).
+- Log chapter also shows a small "LOCAL DATA" line read from the practice app's real log on that device.
+- Boot sequence ≈2.1 s, tap/key to skip. 3 easter eggs (see top of `src/ui/eggs.js`).
+- All text in **`src/content.js`**; storyboard numbers in `src/config/shots.js`.
+- Performance: 3 quality tiers (pixel ratio ≤ 2, anti-aliasing, dust count, colour fringing), picked by device and stepped down automatically if the frame rate stays low; flat CSS fallback without WebGL; calmer mode for reduced motion (no smooth scroll, no drift, static grain, instant boot).
+
+### Tests (cloud, software WebGL — no real phone)
+- Screens checked at 360×680, 412×800, 390×844, 1440×900; no console errors.
+- Real touch gestures: swipe up on the window or anywhere → scrolls; sideways on window → window moves; hold-then-drag → window moves any direction; sideways elsewhere → guitar rotates.
+- Tap string → pluck; swipe → 5–6 plucks; chord tap → dots + strum; hold → focus 0→1→0; mute persists; index + keys jump; eggs fire.
+- LIVE LINK with a fake 110 Hz guitar pluck as the mic → "A2, string 5, fret 0, +3 cents".
+- `.glb` path: exported the built-in guitar to .glb and loaded it back through `loadGuitar({ modelUrl })` — loads, scales, strings + chord dots drawn on top (needs `anchor_nut` / `anchor_saddle` empties to line up with a differently proportioned model).
+- Practice app at `/practice/`: home, routes and log storage work.
+
+### Open
+- **Not tested on a real phone**: frame rate on mid-range Android, gyro tilt feel, sound level of the hum, touch feel of strumming. Kuba to report.
+- Content is placeholder: log entries, gear, clips (no videos yet), contact links → edit `src/content.js`.
+- Lives on branch `ccr-67fdb530-98eink` (Vercel preview). **Not on `main` yet** — waiting for Kuba's OK.
+
 ## Next step
-**v2 step 6 — Today's session (adaptive rules) + Markdown export** (blueprint v2). Also queued: drill "Fast changes" mode (see TODO above).
+**Site:** Kuba tests the preview on his phone → fix what he reports → real content in `src/content.js` → merge to `main`.
+**Practice app:** v2 step 6 — Today's session (adaptive rules) + Markdown export (blueprint v2). Also queued: drill "Fast changes" mode (see TODO above).

@@ -1,12 +1,15 @@
-# Guitar practice app (repo: hello-test2)
+# Kuba's guitar site + practice app (repo: hello-test2)
 
 ## Purpose
-A phone-first guitar practice partner that listens to me play: tuner, chord
-checks, chord change drills, and (later) a guided daily session built from my log.
-Started as a pipeline test (Claude Code → GitHub → Vercel → phone); now the real project.
+Two things live in this repo, on one address:
+
+1. **The site** (`/`) — my personal guitar site: an immersive, scroll-driven "command centre"
+   around a 3D guitar you can play. Sections: hero, practice log, chord bank, clips, gear, contact.
+2. **The practice app** (`/practice/`) — a phone-first practice partner that listens to me play:
+   tuner, chord checks, chord change drills, and (later) a guided daily session built from my log.
 
 - Live: https://hello-test2-inky.vercel.app
-- Blueprints: `docs/blueprint-v1.md` (tuner, done) and `docs/blueprint-v2.md` (practice sessions, in progress)
+- Blueprints (practice app): `docs/blueprint-v1.md` (tuner, done) and `docs/blueprint-v2.md` (practice sessions, in progress)
 - Session history + next step: `SESSIONS.md` — read its last section first.
 
 ## About me
@@ -15,14 +18,61 @@ Started as a pipeline test (Claude Code → GitHub → Vercel → phone); now th
 - Explain each new piece of audio logic in plain words.
 - I test on a real guitar + phone and report back; treat my reports as the ground truth.
 
-## Tech
-- One static site, no framework, no build step. Plain HTML/CSS/JS, scripts loaded in order in `index.html`.
-- Data stays on the device (localStorage). No accounts, no server.
+## The site (`/`)
+
+### Tech
+- **Vite** build (`npm run dev` / `npm run build` → `dist/`). Plain JS modules, no framework.
+- **Three.js** (3D guitar + blur shader), **GSAP ScrollTrigger + Lenis** (scroll story).
+  The 3D code is one lazy chunk (`src/three/*`), loaded after the start-up screen is painted.
+- Look: retro-futuristic command centre. Near-black `#0B0C14`, indigo `#1E2140`, slate `#4A5A8C`,
+  violet `#7A6BA8`, paper white `#E9E7F2`, **one** accent: faded amber `#C9A25A` (warnings + focus lock only).
+  Type: Anton (huge stacked titles), Shippori Mincho 800 (serif labels + Japanese), IBM Plex Mono (readouts).
+- Phone portrait first. Audio starts from the first tap. Respects `prefers-reduced-motion`.
+
+### Where things are
+| File | What it does |
+|---|---|
+| `src/content.js` | **All the words** (titles, log entries, chords, clips, gear, links). Edit only this to change content. |
+| `src/config/shots.js` | The scroll storyboard: per "shot" where the focus window rests, which guitar part is pinned there, guitar size/rotation, exploded view |
+| `index.html` | Page shell + start-up screen markup |
+| `src/main.js` | Entry: builds chapters from content, starts boot, lazy-loads the 3D stage, runs the frame loop |
+| `src/core/state.js` | `S` = shared live state (scroll position, focus window rect, sound level…) + tiny event `bus` |
+| `src/core/director.js` | Scroll → current shot/chapter (Lenis + ScrollTrigger); scrubs each chapter's entrance timeline |
+| `src/core/focus.js` | **Focus window** controller: home / cursor follow / touch drag / gyro tilt / drift / snap to guitar parts / hold-to-focus; moves the HTML frame |
+| `src/core/input.js` | Touch + mouse on the stage: strings (tap/strum), drag window, rotate, hold |
+| `src/core/layout.js` | Viewport sizes + `homeRect(shot)` |
+| `src/three/stage.js` | Renderer, camera, lights, per-frame guitar pose, quality tiers (low/mid/high, auto step-down) |
+| `src/three/guitar.js` | Procedural guitar from primitives, vibrating strings, chord dots, exploded view, in-scene labels. `.glb` swap notes at the top |
+| `src/three/guitar-math.js` | Fret / string positions (no Three.js, used by input too) |
+| `src/three/backdrop.js` | Background shader (colour field, hex grid, range rings, pluck ripple) + dust |
+| `src/three/post.js` | Blur chain + final pass: sharp inside the window, blurred outside; grain, colour fringing, scanlines, vignette |
+| `src/audio/engine.js` | Web Audio: Karplus–Strong plucks, ambient hum, UI blips, mute (key `site.muted`), overdrive |
+| `src/audio/livelink.js` | LIVE LINK: mic → YIN pitch (ported from the practice app) → string/fret on the 3D guitar |
+| `src/chapters/*.js` | One file per chapter (HTML from content + its interactions); `common.js` = shared title/tag/entrance |
+| `src/ui/*.js` | `hud` (index, readouts, toggles), `boot`, `cursor`, `keys`, `eggs` (3 hidden things, listed at the top of the file) |
+| `src/styles/*.css` | `base` (tokens, focus frame, boot, grain), `hud`, `chapters` (phone first, desktop at the bottom) |
+| `public/clips/` | Put practice videos here, then reference them in `content.js` |
+
+### Conventions
+- The focus window is one rectangle (`S.win`, whole CSS px) used by both the shader and the HTML frame — never position them separately.
+- Layout drives the 3D: a shot says where the window rests; the guitar is moved so the named part sits under it.
+- Chapters are fixed layers; `#track` only provides scroll length. No nested scrolling.
+- Vertical swipes must always scroll. Sideways drag = rotate / move window; hold = focus.
+- Quality: `?q=low|mid|high` pins the render tier; `?debug` exposes `window.__site`.
+- Real phone heights are short (≈680–800 px with the address bar): check `@media (max-height: 760px)` when adding content.
+
+## The practice app (`/practice/`)
+
+### Tech
+- Static files in `public/practice/` — no framework, **no build step** (Vite copies the folder as-is).
+  Plain HTML/CSS/JS, scripts loaded in order in `public/practice/index.html`.
+- Data stays on the device (localStorage). No accounts, no server. Same origin as the site, so the
+  site's log chapter can show a "LOCAL DATA" readout from `practice.log.v1`.
 - Look: dark, minimal, near-black `#0E0E0E`, off-white text, soft green accent (= good / in tune),
   muted amber (slightly off) and soft red (wrong). English. Phone portrait, one-handed.
 - Audio must start from a tap (phones block it otherwise).
 
-### Files
+### Files (all in `public/practice/`)
 | File | What it does |
 |---|---|
 | `index.html` | All screens (sections with `data-screen`), script order |
@@ -49,15 +99,20 @@ Started as a pipeline test (Claude Code → GitHub → Vercel → phone); now th
 
 ## Deploy
 - Vercel project `hello-test2` (team `jakubkabele1`), linked to GitHub; **every push to `main` deploys** to production.
+  Vercel runs `npm run build` and serves `dist/` (see `vercel.json`); other branches get preview links.
 - Work branch `claude/hello-test2-repo-9g3mvq`; push to both it and `main`.
+- The site overhaul was built on branch `ccr-67fdb530-98eink` (preview only) — it goes to `main` when Kuba says so.
 
 ## Testing (no real guitar in the cloud)
-- Synthetic guitar audio (Karplus-Strong plucks/strums, optional phone-mic high-pass) generated with Python/numpy.
-- Engine tests in Node (`require('./chords.js')`); end-to-end in Playwright Chromium with
+- Practice app: synthetic guitar audio (Karplus-Strong plucks/strums, optional phone-mic high-pass) generated with Python/numpy.
+  Engine tests in Node (`require('./public/practice/chords.js')`); end-to-end in Playwright Chromium with
   `--use-fake-device-for-media-stream --use-file-for-fake-audio-capture=<wav>`.
+- Site: `npm run build && npx vite preview`, then Playwright Chromium with
+  `--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader` (software WebGL). Screenshot every shot at
+  360×680, 412×800, 390×844 and 1440×900; real touch gestures via CDP `Input.dispatchTouchEvent`.
 - Scripts live in the session scratchpad (not committed); recreate as needed.
 
-## Build order (blueprint v2)
+## Build order (practice app, blueprint v2)
 1. ✅ Home + navigation + log storage
 2. ✅ Clean chord check (+ strum mode, auto chord, sensitivity, spot check)
 3. ✅ Chord change drill
