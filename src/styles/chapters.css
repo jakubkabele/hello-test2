@@ -385,6 +385,31 @@ html.is-picking #hud { opacity: 0; visibility: hidden; transition: opacity 0.2s,
 .pk-done { background: var(--paper); color: var(--void); border-color: var(--paper) !important; font: 400 20px/1 var(--d) !important; letter-spacing: 0.02em !important; }
 .pk-done:disabled { background: none; color: var(--dim); border-color: var(--line) !important; font: 400 10px/1 var(--m) !important; letter-spacing: 0.14em !important; }
 
+
+/* keep time (EX-04) */
+.ex-kt .kt-v { display: none; }
+.ex-kt[data-view='setup'] .kt-setup, .ex-kt[data-view='run'] .kt-run, .ex-kt[data-view='summary'] .kt-sum { display: block; }
+.ex-kt .ex-read { top: calc(var(--wy) + var(--wh) + 34px); left: var(--pad); right: var(--pad); width: auto; }
+.kt-bpmbig { font: 400 96px/0.85 var(--d); }
+.kt-bpmbig small { font: 400 14px/1 var(--m); color: var(--dim); margin-left: 8px; letter-spacing: 0.1em; }
+.kt-how { font: 800 14px/1.35 var(--s); max-width: 30ch; }
+.kt-last { font-size: 9.5px; letter-spacing: 0.1em; color: var(--dim); text-transform: uppercase; }
+.kt-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.kt-steps span { border: 1px solid var(--line); padding: 8px 8px 9px; font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); display: flex; flex-direction: column; gap: 5px; }
+.kt-steps b { font: 400 22px/1 var(--d); color: var(--paper); letter-spacing: 0; }
+.kt-steps span:last-child { border-color: var(--amber); }
+.kt-steps span:last-child b { color: var(--amber); }
+.kt-big { font: 400 130px/0.82 var(--d); min-height: 0.82em; }
+.ex-kt[data-phase='alone'] .kt-big { color: var(--amber); }
+.kt-sub { font-size: 10px; letter-spacing: 0.12em; color: var(--dim); text-transform: uppercase; }
+.kt-phase { font: 500 13px/1 var(--m); color: var(--paper); text-transform: uppercase; letter-spacing: 0.12em; }
+.ex-kt[data-phase='alone'] .kt-phase { color: var(--amber); }
+.kt-dots { display: flex; flex-wrap: wrap; gap: 3px; min-height: 10px; }
+.kt-dots i { width: 7px; height: 22px; border: 1px solid var(--line); }
+.kt-dots i.ok { background: var(--amber); border-color: var(--amber); }
+.kt-dots i.meh { background: rgba(233, 231, 242, 0.5); border-color: var(--paper); height: 14px; margin-top: 8px; }
+.ex-kt[data-view='summary'] .ex-panel { bottom: calc(var(--bot) + 132px); }
+
 /* phones with less height (most Android phones with the address bar showing) */
 @media (max-height: 760px) {
   .ch-hero .hint { display: none; }
@@ -406,6 +431,8 @@ html.is-picking #hud { opacity: 0; visibility: hidden; transition: opacity 0.2s,
   .dr-status { min-height: 0; font-size: 13px; }
   .fn-note { font-size: 110px; }
   .ch-target { font-size: 92px; }
+  .kt-big { font-size: 96px; }
+  .kt-bpmbig { font-size: 72px; }
   .ch-pool { font-size: 44px; }
   .rh-big { font-size: 90px; }
   .rh-pname { font-size: 48px; }
@@ -453,6 +480,8 @@ html.is-picking #hud { opacity: 0; visibility: hidden; transition: opacity 0.2s,
   .dr-big { font-size: 190px; }
   .cc-name.is-long, .dr-chord.is-long { font-size: 96px; }
   .dr-cal-beat { font-size: 110px; }
+  .ex-kt .ex-read { left: var(--wx); right: auto; width: calc(var(--ww) - 470px); top: calc(var(--wy) + var(--wh) + 30px); }
+  .ex-kt .ex-panel { left: calc(var(--wx) + var(--ww) - 440px); top: calc(var(--wy) + var(--wh) + 30px); }
   .ex-rh .ex-read, .ex-fn .ex-read { left: var(--wx); right: auto; width: calc(var(--ww) - 470px); top: calc(var(--wy) + var(--wh) + 30px); }
   .ex-rh .ex-read .rh-pname { font-size: 72px; }
   .ex-rh .ex-panel, .ex-fn .ex-panel { left: calc(var(--wx) + var(--ww) - 440px); top: calc(var(--wy) + var(--wh) + 30px); }

@@ -62,14 +62,9 @@ export const SHOTS = [
     win: { m: [0.45, 0.16, 0.49, 0.35], d: [0.34, 0.15, 0.2, 0.6] },
     fit: { m: 2.35, d: 3.6 }, rot: [-16, 0, 0], spin: 0,
   },
-  {
-    ex: 'drill', ch: 'chords', anchor: 'chordbox',
-    win: { m: [0.45, 0.16, 0.49, 0.35], d: [0.34, 0.15, 0.2, 0.6] },
-    fit: { m: 2.35, d: 3.6 }, rot: [-16, 0, 0], spin: 0,
-  },
   // the strings where the pick hits them: every strum shakes them
   {
-    ex: 'rhythm', ch: 'body', anchor: 'strum',
+    ex: 'keeptime', ch: 'body', anchor: 'strum',
     win: { m: [0.06, 0.18, 0.88, 0.21], d: [0.22, 0.14, 0.56, 0.36] },
     fit: { m: 2.0, d: 2.4 }, rot: [-18, 0, 90], spin: 0,
   },

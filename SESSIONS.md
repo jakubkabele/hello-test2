@@ -209,9 +209,16 @@ Built:
 - Real-guitar test of Chord changes: similar chords (C / Am, G / Em) with sloppy strums; speed of moving on.
 - The old metronome drill is hidden (card gone) but its code stays for the timing calibration until Rhythm is reworked.
 
+## Same day — Keep time replaces Rhythm; pairs count either way
+- Kuba: Chord changes "is good", but Em → Am and Am → Em must count as the same pair. Now results, presets' "last" score and the slowest-change line use the set of chords, in any order; each round also logs avg seconds per pair (`score.pairs`, either direction) — ready for Today's session.
+- **EX-04 Keep time** (`src/exercises/keeptime.js`) replaces Rhythm: 4 clicks (listen) → 8 clicks (strum along) → click stops, 30 s alone, down-strums on every beat. Strums compared only with each other: where each one should have landed by the strums around it (evenness, ±ms; score = % within the sensitivity's Rhythm tolerance) and tempo at the start vs end of the quiet part (rushing / dragging). Two hits within a third of a beat = one strum; a ~2-beat gap = one missed beat. Live: your tempo, "on tempo / rushing +4", a bar per strum (amber = even).
+- Removed from the site: Rhythm, the metronome change drill and its calibration (no longer needed). The old `/practice/` app still has them.
+- Tests (synthetic): steady with ±10 ms jitter, a double hit and a skipped beat → 100 %, ±5 ms, 70 → 70, "1 beat with no strum"; speeding up ~8 % → "71 → 77 BPM, you sped up".
+- Note: the % only measures evenness; drifting shows as its own line. If Kuba wants drift to lower the score, change it in `finish()`.
+
 ## Next step
-1. Kuba tests **Chord changes** on the guitar → tune.
-2. **Keep time** replaces Rhythm (click 2 bars → silence → judge evenness + drift). Then remove the old drill + calibration if nothing needs them.
+1. Kuba tests **Chord changes** on the guitar → tune (similar chords, speed of moving on).
+2. Kuba tests **Keep time** on the guitar.
 3. Songs (save chords of a song → Chord changes pulls them in order).
 4. **Rebuild step 4:** (log on the pedal, sensitivity on the amp knobs, red full-screen "alert" as the pause screen — the drill's pause band is the placeholder).
 5. When Kuba says "go live": merge the redesign branch into `main`.

@@ -27,8 +27,7 @@ import { createKeys } from './ui/keys.js';
 import { createEggs } from './ui/eggs.js';
 import { createTuner } from './exercises/tuner.js';
 import { createCleanCheck } from './exercises/cleancheck.js';
-import { createDrill } from './exercises/drill.js';
-import { createRhythm } from './exercises/rhythm.js';
+import { createKeepTime } from './exercises/keeptime.js';
 import { createChanges } from './exercises/changes.js';
 import { createFindNote } from './exercises/findnote.js';
 
@@ -103,9 +102,8 @@ bus.on('chapter', () => host.querySelectorAll('.ch.is-open').forEach((c) => { c.
 // exercises that run inside the 3D world
 createTuner({ root: host, words: content.ex.tuner, liveLink, audio, focus, getStage: () => stage, director });
 createCleanCheck({ root: host, words: content.ex.cleancheck, audio, getStage: () => stage, director });
-createDrill({ root: host, words: content.ex.drill, audio, getStage: () => stage, director });
 createChanges({ root: host, words: content.ex.changes, audio, getStage: () => stage, director });
-createRhythm({ root: host, words: content.ex.rhythm, audio, getStage: () => stage, director });
+createKeepTime({ root: host, words: content.ex.keeptime, audio, getStage: () => stage, director });
 createFindNote({ root: host, words: content.ex.findnote, audio, getStage: () => stage, director });
 layout();
 director.measure();

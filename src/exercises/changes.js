@@ -94,7 +94,10 @@ export function createChanges({ root, words, audio, getStage, director }) {
   let E = null, open = false, view = 'setup';
   const cfg = loadPrefs(PREFS, { pool: ['Am', 'F'], order: 'loop' });
   const shapeOf = (n) => E && E.Chords.LIBRARY.find((c) => c.name === n);
-  const poolKey = () => `${cfg.order}:${cfg.pool.join('|')}`;
+  // the same chords are the same set, in any order: Em ↔ Am = Am ↔ Em (old results keyed 'loop:A|B' still match)
+  const setKey = (names) => names.slice().sort().join('|');
+  const poolKey = () => setKey(cfg.pool);
+  const pairKey = (a, b) => [a, b].sort().join(' ↔ ');
   const g3 = () => getStage()?.guitar;
 
   function setView(v) {
@@ -110,13 +113,14 @@ export function createChanges({ root, words, audio, getStage, director }) {
     if (v) { cfg.pool = v; savePrefs(PREFS, cfg); renderSetup(); }
   });
   $('.ch-presets').addEventListener('click', async () => {
-    const cur = cfg.pool.join('|');
+    const match = PRESETS.flatMap(([, , sets]) => sets).find((p) => setKey(p) === poolKey());
+    const cur = (match || cfg.pool).join('|');
     const v = await picker.list({
       title: words.presets, value: cur,
       tabs: PRESETS.map(([id, label, sets]) => ({
         id, label,
         rows: sets.map((p) => {
-          const last = lastResult(`loop:${p.join('|')}`);
+          const last = lastResult(setKey(p));
           return { value: p.join('|'), label: p.join(p.length > 2 ? ' → ' : ' ↔ '), sub: last ? `${last.score.changesPerMin}/min` : words.newOne };
         }),
       })),
@@ -138,7 +142,7 @@ export function createChanges({ root, words, audio, getStage, director }) {
     if (open && view === 'setup') showChord(cfg.pool[0]);
   }
   function lastResult(key) {
-    const l = readLog().filter((e) => e.exercise === 'chord-changes' && e.score && !e.score.partial && e.score.key === key);
+    const l = readLog().filter((e) => e.exercise === 'chord-changes' && e.score && !e.score.partial && setKey(String(e.score.key || '').replace(/^\w+:/, '').split('|')) === key);
     return l[l.length - 1] || null;
   }
 
@@ -322,7 +326,7 @@ export function createChanges({ root, words, audio, getStage, director }) {
     const avg = changes.reduce((s, c) => s + c.sec, 0) / changes.length;
     // slowest change (by pair, average)
     const byPair = {};
-    changes.forEach((c) => { const k = `${c.from} → ${c.to}`; (byPair[k] = byPair[k] || []).push(c.sec); });
+    changes.forEach((c) => { const k = pairKey(c.from, c.to); (byPair[k] = byPair[k] || []).push(c.sec); });
     const pairAvg = Object.entries(byPair).map(([k, l]) => [k, l.reduce((a, b) => a + b, 0) / l.length]).sort((a, b) => b[1] - a[1]);
     // what went wrong, per chord
     const issues = {};
@@ -336,6 +340,7 @@ export function createChanges({ root, words, audio, getStage, director }) {
       score: {
         changesPerMin: perMin, changes: changes.length, clean, cleanPct, avgSec: Number(avg.toFixed(2)), order: cfg.order, key,
         slowest: pairAvg[0] ? { pair: pairAvg[0][0], sec: Number(pairAvg[0][1].toFixed(2)) } : null, issues, wrongHeard,
+        pairs: Object.fromEntries(pairAvg.map(([k, v]) => [k, Number(v.toFixed(2))])),   // avg seconds per pair, either direction
         ...(partial ? { partial: true } : {}),
       },
       summary: `${name}${cfg.order === 'random' ? ' (random)' : ''}: ${perMin} changes/min, ${cleanPct}% clean, avg ${avg.toFixed(1)} s${prev ? ` (prev ${prev.score.changesPerMin})` : ''}${partial ? ` · partial, ${Math.round(activeSec)} s` : ''}`,
