@@ -16,6 +16,7 @@
 
 import { bus } from '../core/state.js';
 import { esc } from '../chapters/common.js';
+import { createPicker } from './picker.js';
 import { loadEngine, openMic, profile, addLog, loadPrefs, savePrefs, neckFrets, STRING_LABEL, stringName } from './ear.js';
 
 const PREFS = 'practice.cleancheck.settings';     // shared with the old screen
@@ -44,7 +45,7 @@ export function createCleanCheck({ root, words, audio, getStage, director }) {
         <div class="seg" role="group" aria-label="How to check">
           <button type="button" data-mode="strum">${esc(words.strum)}</button><button type="button" data-mode="string">${esc(words.string)}</button>
         </div>
-        <label class="pick"><span>${esc(words.chord)}</span><select class="cc-pick" aria-label="${esc(words.chord)}"></select></label>
+        <button type="button" class="pick cc-pick"><span>${esc(words.chord)}</span><b>${esc(words.auto)}</b></button>
       </div>
     </div>
     <button type="button" class="ex-go">${esc(words.start)}</button>`;
@@ -80,19 +81,24 @@ export function createCleanCheck({ root, words, audio, getStage, director }) {
     if (settings.mode === b.dataset.mode) return;
     settings.mode = b.dataset.mode; savePrefs(PREFS, settings); restartFresh();
   }));
-  pickSel.addEventListener('change', () => {
-    if (pickSel.value === 'auto') settings.pick = 'auto';
-    else { settings.pick = 'manual'; settings.chord = pickSel.value; }
+  // the chord picker sheet: Auto, then every shape we know with a tiny fingering diagram
+  const picker = createPicker(el);
+  pickSel.addEventListener('click', async () => {
+    if (!E) return;
+    const item = (c) => ({ value: c.name, label: c.name, shape: c });
+    const v = await picker.open({
+      title: words.chord, jp: '和音', value: settings.pick === 'manual' ? settings.chord : 'auto',
+      groups: [
+        { items: [{ value: 'auto', label: words.auto, sub: words.autoSub, accent: true }], wide: true },
+        { label: words.openChords, items: E.Chords.LIBRARY.filter((c) => !c.isBarre).map(item) },
+        { label: words.barreChords, items: E.Chords.LIBRARY.filter((c) => c.isBarre).map(item) },
+      ],
+    });
+    if (v === null) return;
+    if (v === 'auto') settings.pick = 'auto';
+    else { settings.pick = 'manual'; settings.chord = v; }
     savePrefs(PREFS, settings); restartFresh();
   });
-  function fillPicker() {
-    if (pickSel.options.length) return;
-    pickSel.add(new Option(words.auto, 'auto'));
-    const open_ = document.createElement('optgroup'); open_.label = 'Open';
-    const barre = document.createElement('optgroup'); barre.label = 'Barre';
-    E.Chords.LIBRARY.forEach((c) => (c.isBarre ? barre : open_).appendChild(new Option(c.name, c.name)));
-    pickSel.append(open_, barre);
-  }
 
   function restartFresh() {
     const was = running;
@@ -406,7 +412,7 @@ export function createCleanCheck({ root, words, audio, getStage, director }) {
   function render() {
     if (!E) return;
     modeBtns.forEach((b) => b.classList.toggle('is-on', b.dataset.mode === settings.mode));
-    pickSel.value = settings.pick === 'manual' ? settings.chord : 'auto';
+    pickSel.querySelector('b').textContent = settings.pick === 'manual' ? settings.chord : words.auto;
     const name = shape ? shape.name : settings.pick === 'manual' ? pickedShape().name : '';
     nameEl.textContent = name || '—';
     nameEl.classList.toggle('is-long', name.length > 3);
@@ -480,7 +486,6 @@ export function createCleanCheck({ root, words, audio, getStage, director }) {
     bigEl.textContent = words.loading; subEl.textContent = '';
     loadEngine().then((eng) => {
       E = eng;
-      fillPicker();
       if (!open) return;
       if (!running && phase !== 'done' && !message) resetView();
       shownShape = '__';
@@ -489,7 +494,7 @@ export function createCleanCheck({ root, words, audio, getStage, director }) {
   });
   bus.on('ex:leave', (n) => {
     if (n !== 'cleancheck') return;
-    stop(); open = false;
+    stop(); open = false; picker.close();
     el.classList.remove('is-open');
     clear3D();
     bus.emit('chord', [0, 2, 2, 0, 0, 0]);      // the stop's Em comes back

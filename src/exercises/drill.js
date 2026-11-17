@@ -20,6 +20,7 @@
 
 import { bus } from '../core/state.js';
 import { esc } from '../chapters/common.js';
+import { createPicker } from './picker.js';
 import { loadEngine, openMic, playClick, profile, addLog, readLog, loadPrefs, savePrefs, neckFrets } from './ear.js';
 
 const PREFS = 'practice.drill.settings';          // shared with the old screen
@@ -50,10 +51,10 @@ export function createDrill({ root, words, audio, getStage, director }) {
     <div class="dr-v dr-setup">
       <div class="ex-read"><b class="dr-pairbig"></b><span class="dr-last"></span></div>
       <div class="ex-panel">
-        <label class="pick pick-wide"><span>${esc(words.pair)}</span><select class="dr-pair"></select></label>
+        <button type="button" class="pick dr-pair"><span>${esc(words.pair)}</span><b></b></button>
         <div class="dr-custom" hidden>
-          <label class="pick"><span>${esc(words.from)}</span><select class="dr-from"></select></label>
-          <label class="pick"><span>${esc(words.to)}</span><select class="dr-to"></select></label>
+          <button type="button" class="pick dr-from"><span>${esc(words.from)}</span><b></b></button>
+          <button type="button" class="pick dr-to"><span>${esc(words.to)}</span><b></b></button>
         </div>
         <div class="dr-row">
           <div class="step"><button type="button" class="dr-minus" aria-label="Slower">−</button><b><span class="dr-bpm">60</span><small>BPM</small></b><button type="button" class="dr-plus" aria-label="Faster">+</button></div>
@@ -135,25 +136,47 @@ export function createDrill({ root, words, audio, getStage, director }) {
   }
 
   // ── setup ──
-  function fillSetup() {
-    if (pairSel.options.length) return;
-    GROUPS.forEach(([label, pairs], gi) => {
-      const og = document.createElement('optgroup'); og.label = label;
-      pairs.forEach((p) => og.appendChild(new Option(`${p[0]} ↔ ${p[1]}`, `${GROUP_IDS[gi]}:${p.join('|')}`)));
-      pairSel.appendChild(og);
+  // picker sheets: the pair list (with your last score per pair), and single chords for your own pair
+  const picker = createPicker(el);
+  const pairValue = () => (cfg.group === 'custom' ? 'custom' : `${cfg.group}:${cfg.pair.join('|')}`);
+  pairSel.addEventListener('click', async () => {
+    if (!E) return;
+    const v = await picker.open({
+      title: words.pair, jp: '持替', value: pairValue(),
+      groups: [
+        ...GROUPS.map(([label, pairs], gi) => ({
+          label, wide: true,
+          items: pairs.map((p) => {
+            const last = lastResult(p);
+            return { value: `${GROUP_IDS[gi]}:${p.join('|')}`, label: `${p[0]} ↔ ${p[1]}`, sub: last ? `${words.lastTime} ${last.score.changesPerMin}/min` : words.newPair };
+          }),
+        })),
+        { label: words.ownLabel, wide: true, items: [{ value: 'custom', label: words.customPair, sub: `${cfg.custom[0]} ↔ ${cfg.custom[1]}`, accent: true }] },
+      ],
     });
-    const og = document.createElement('optgroup'); og.label = 'Custom';
-    og.appendChild(new Option(words.customPair, 'custom'));
-    pairSel.appendChild(og);
-    E.Chords.LIBRARY.forEach((c) => { fromSel.add(new Option(c.name, c.name)); toSel.add(new Option(c.name, c.name)); });
-  }
-  pairSel.addEventListener('change', () => {
-    if (pairSel.value === 'custom') cfg.group = 'custom';
-    else { const [gid, p] = pairSel.value.split(':'); cfg.group = gid; cfg.pair = p.split('|'); }
+    if (v === null) return;
+    if (v === 'custom') {
+      // pick both chords, one after the other
+      const a = await pickChord(words.from, cfg.custom[0]);
+      if (a === null) return;
+      const b = await pickChord(words.to, cfg.custom[1]);
+      if (b === null) return;
+      cfg.group = 'custom'; cfg.custom = [a, b];
+    } else { const [gid, p] = v.split(':'); cfg.group = gid; cfg.pair = p.split('|'); }
     save(); renderSetup();
   });
-  fromSel.addEventListener('change', () => { cfg.custom[0] = fromSel.value; save(); renderSetup(); });
-  toSel.addEventListener('change', () => { cfg.custom[1] = toSel.value; save(); renderSetup(); });
+  function pickChord(title, value) {
+    const item = (c) => ({ value: c.name, label: c.name, shape: c });
+    return picker.open({
+      title, jp: '和音', value,
+      groups: [
+        { label: words.openChords, items: E.Chords.LIBRARY.filter((c) => !c.isBarre).map(item) },
+        { label: words.barreChords, items: E.Chords.LIBRARY.filter((c) => c.isBarre).map(item) },
+      ],
+    });
+  }
+  fromSel.addEventListener('click', async () => { const v = await pickChord(words.from, cfg.custom[0]); if (v !== null) { cfg.custom[0] = v; save(); renderSetup(); } });
+  toSel.addEventListener('click', async () => { const v = await pickChord(words.to, cfg.custom[1]); if (v !== null) { cfg.custom[1] = v; save(); renderSetup(); } });
   beatBtns.forEach((b) => b.addEventListener('click', () => { cfg.beats = +b.dataset.beats; save(); renderSetup(); }));
   $('.dr-minus').addEventListener('click', () => { cfg.bpm = Math.max(40, cfg.bpm - 5); save(); renderSetup(); });
   $('.dr-plus').addEventListener('click', () => { cfg.bpm = Math.min(160, cfg.bpm + 5); save(); renderSetup(); });
@@ -168,10 +191,11 @@ export function createDrill({ root, words, audio, getStage, director }) {
   function renderSetup() {
     if (!E) return;
     const p = currentPair();
-    pairSel.value = cfg.group === 'custom' ? 'custom' : `${cfg.group}:${cfg.pair.join('|')}`;
-    if (pairSel.selectedIndex < 0) { cfg.group = 'barre1'; cfg.pair = ['Am', 'F']; pairSel.value = 'barre1:Am|F'; }
+    if (cfg.group !== 'custom' && !GROUP_IDS.includes(cfg.group)) { cfg.group = 'barre1'; cfg.pair = ['Am', 'F']; }
+    pairSel.querySelector('b').textContent = cfg.group === 'custom' ? words.customPair : `${p[0]} ↔ ${p[1]}`;
     $('.dr-custom').hidden = cfg.group !== 'custom';
-    fromSel.value = cfg.custom[0]; toSel.value = cfg.custom[1];
+    fromSel.querySelector('b').textContent = cfg.custom[0];
+    toSel.querySelector('b').textContent = cfg.custom[1];
     $('.dr-pairbig').innerHTML = `<span>${esc(p[0])}</span><span><i>↔</i>${esc(p[1])}</span>`;
     const last = lastResult(p), best = bestResult(p);
     $('.dr-last').textContent = last ? `${words.lastTime} ${last.score.changesPerMin}/min${best ? ` · ${words.best} ${best}` : ''}` : words.newPair;
@@ -713,7 +737,6 @@ export function createDrill({ root, words, audio, getStage, director }) {
     loadEngine().then((eng) => {
       const first = !E;
       E = eng;
-      fillSetup();
       if (first) restore();
       if (!open) return;
       if (round && paused) { setView('run'); go.textContent = words.resume; renderPaused(); drawHistory(); return; }
@@ -724,6 +747,7 @@ export function createDrill({ root, words, audio, getStage, director }) {
   bus.on('ex:leave', (n) => {
     if (n !== 'drill') return;
     stopAll();
+    picker.close();
     open = false;
     el.classList.remove('is-open');
     shownChord = '';

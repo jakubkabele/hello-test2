@@ -101,7 +101,6 @@
 /* ── EX-02 / EX-03: chords on the fretboard ──
    .ex-read  = big readout beside the focus window (phone) / right of it (desktop)
    .ex-panel = controls stacked above the big button */
-.ex select, .ex label { pointer-events: auto; }
 .ex-read { position: absolute; left: var(--pad); width: calc(var(--wx) - var(--pad) - 10px); top: calc(var(--wy) + 6px); display: flex; flex-direction: column; gap: 8px; }
 .ex-panel { position: absolute; left: var(--pad); right: var(--pad); bottom: calc(var(--bot) + 84px); display: flex; flex-direction: column; gap: 10px; }
 .ex-alt { height: 44px; border: 1px dashed var(--amber); color: var(--amber); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; padding: 0 12px; }
@@ -116,11 +115,58 @@
 .seg button + button { border-left: 1px solid var(--line); }
 .seg .is-on { background: var(--paper); color: var(--void); }
 .seg-l { display: flex; align-items: center; padding: 0 9px; font-size: 8.5px; letter-spacing: 0.1em; color: var(--dim); text-transform: uppercase; border-right: 1px solid var(--line); line-height: 1.2; }
-.pick { position: relative; display: flex; align-items: center; height: 44px; border: 1px solid var(--line); background: rgba(11, 12, 20, 0.55); }
-.pick > span { position: absolute; left: 9px; top: 5px; font-size: 7.5px; letter-spacing: 0.14em; color: var(--dim); text-transform: uppercase; pointer-events: none; }
-.pick select { appearance: none; -webkit-appearance: none; width: 100%; height: 100%; padding: 13px 26px 0 9px; border: 0; border-radius: 0; background: transparent; color: var(--paper); font: 800 15px/1 var(--s); letter-spacing: 0.02em; cursor: pointer; }
-.pick::after { content: '▾'; position: absolute; right: 9px; top: 50%; transform: translateY(-50%); font-size: 10px; color: var(--dim); pointer-events: none; }
-.pick select option, .pick select optgroup { background: var(--void); color: var(--paper); font-family: var(--m); }
+.pick { position: relative; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 3px; width: 100%; height: 44px; padding: 0 26px 0 9px; border: 1px solid var(--line); background: rgba(11, 12, 20, 0.55); text-align: left; min-width: 0; }
+.pick > span { font-size: 7.5px; line-height: 1; letter-spacing: 0.14em; color: var(--dim); text-transform: uppercase; }
+.pick > b { font: 800 15px/1.2 var(--s); letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; text-transform: none; }
+.pick::after { content: '▸'; position: absolute; right: 10px; top: 50%; transform: translateY(-50%) rotate(90deg); font-size: 10px; color: var(--dim); }
+.pick:active { background: var(--paper); color: var(--void); }
+.pick:active > span, .pick:active::after { color: var(--void); }
+
+/* the picker sheet (picker.js) — slides up over the exercise */
+.pk { position: fixed; inset: 0; z-index: 6; pointer-events: none; visibility: hidden; }
+.pk.is-open { pointer-events: auto; visibility: visible; }
+.pk::before { content: ''; position: absolute; inset: 0; background: rgba(11, 12, 20, 0.6); opacity: 0; transition: opacity 0.25s; }
+.pk.is-open::before { opacity: 1; }
+.pk-in { position: absolute; left: 0; right: 0; bottom: 0; top: env(safe-area-inset-top, 0px); display: flex; flex-direction: column;
+  background: rgba(11, 12, 20, 0.97); border-top: 1px solid var(--paper);
+  transform: translateY(24px); opacity: 0; transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.2, 1), opacity 0.2s; }
+.pk.is-open .pk-in { transform: none; opacity: 1; }
+.pk-in::before { content: ''; position: absolute; left: 0; right: 0; top: -1px; height: 6px; background: repeating-linear-gradient(-45deg, var(--amber) 0 6px, transparent 6px 12px); opacity: 0.8; }
+html.is-picking #hud { opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0s 0.2s; }
+.pk-head { display: flex; align-items: center; justify-content: space-between; padding: 16px var(--pad) 10px; }
+.pk-title { display: flex; align-items: baseline; gap: 10px; }
+.pk-title b { font: 400 34px/1 var(--d); text-transform: uppercase; letter-spacing: 0.01em; }
+.pk-title i { font: 800 11px/1 var(--s); font-style: normal; letter-spacing: 0.3em; color: var(--dim); }
+.pk-x { height: 44px; padding: 0 2px 0 10px; font-size: 10px; letter-spacing: 0.16em; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); }
+.pk-rule { display: block; height: 1px; margin: 0 var(--pad); background: var(--line-soft); }
+.pk-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 4px var(--pad) calc(env(safe-area-inset-bottom, 0px) + 24px); touch-action: pan-y; }
+.pk-group { margin: 16px 0 8px; font: 800 10px/1 var(--s); letter-spacing: 0.22em; text-transform: uppercase; color: var(--dim); display: flex; align-items: center; gap: 10px; }
+.pk-group::after { content: ''; flex: 1; height: 1px; background: var(--line-soft); }
+.pk-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.pk-grid.is-wide { grid-template-columns: 1fr 1fr; }
+.pk-item { position: relative; min-height: 84px; padding: 9px 4px 7px; border: 1px solid var(--line); background: rgba(30, 33, 64, 0.35);
+  display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 5px; transition: background 0.15s, border-color 0.15s; }
+.pk-item b { font: 400 22px/1 var(--d); letter-spacing: 0.01em; white-space: nowrap; }
+.pk-item span { font-size: 8.5px; letter-spacing: 0.08em; color: var(--dim); text-transform: uppercase; }
+.pk-grid.is-wide .pk-item { min-height: 58px; align-items: flex-start; justify-content: center; padding: 8px 12px; }
+.pk-grid.is-wide .pk-item b { font-size: 22px; }
+.pk-item.is-accent { border-style: dashed; }
+.pk-item.is-cur { border-color: var(--amber); background: rgba(201, 162, 90, 0.12); }
+.pk-item.is-cur b { color: var(--amber); }
+.pk-item.is-cur::after { content: ''; position: absolute; right: 5px; top: 5px; width: 6px; height: 6px; background: var(--amber); }
+.pk-item:active { background: var(--paper); border-color: var(--paper); }
+.pk-item:active b, .pk-item:active span { color: var(--void); }
+@media (hover: hover) { .pk-item:hover { border-color: var(--paper); } }
+.mini { width: 40px; height: 36px; display: block; }
+.mini line { stroke: rgba(233, 231, 242, 0.45); stroke-width: 0.6; }
+.mini line.nut { stroke: var(--paper); stroke-width: 1.6; }
+.mini .dt { fill: var(--paper); }
+.mini .op { fill: none; stroke: var(--paper); stroke-width: 0.7; }
+.mini .mk { fill: var(--dim); font: 6px var(--m); text-anchor: middle; }
+.pk-item.is-cur .mini .dt { fill: var(--amber); }
+.pk-item:active .mini .dt { fill: var(--void); }
+.pk-item:active .mini line { stroke: var(--void); }
+
 .tog { height: 40px; border: 1px solid var(--line); background: rgba(11, 12, 20, 0.55); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); padding: 0 8px; display: flex; align-items: center; justify-content: center; gap: 6px; }
 .tog[aria-pressed]::before { content: ''; width: 7px; height: 7px; border: 1px solid currentColor; }
 .tog[aria-pressed='true'] { color: var(--paper); border-color: var(--paper); }
@@ -288,5 +334,8 @@
   .dr-big { font-size: 190px; }
   .cc-name.is-long, .dr-chord.is-long { font-size: 96px; }
   .dr-cal-beat { font-size: 110px; }
+  .pk-in { left: 50%; right: auto; width: 640px; transform: translate(-50%, 24px); top: calc(var(--top) + 30px); bottom: 30px; border: 1px solid var(--line); border-top-color: var(--paper); }
+  .pk.is-open .pk-in { transform: translateX(-50%); }
+  .pk-grid { grid-template-columns: repeat(6, 1fr); }
   .dr-paused { left: calc(var(--wx) + var(--ww) + 40px); right: auto; width: 520px; }
 }
