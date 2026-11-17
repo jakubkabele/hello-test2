@@ -188,4 +188,4 @@ Built:
 ## Next step
 1. Kuba tests steps 2–3 on the phone + guitar (clean check, drill, rhythm, find the note, calibration, pause) → fix what he reports.
 2. **Rebuild step 4:** (log on the pedal, sensitivity on the amp knobs, red full-screen "alert" as the pause screen — the drill's pause band is the placeholder).
-4. When Kuba says "go live": merge the redesign branch into `main`.
+3. When Kuba says "go live": merge the redesign branch into `main`.
