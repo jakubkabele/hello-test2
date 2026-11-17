@@ -170,8 +170,22 @@ Built:
 - Barre chords show as single dots (no bar drawn on the neck yet).
 - Still on branch preview (not `main`).
 
+## 2026-11-17 (cont.) — ORPHEUS rebuild step 3: Rhythm + Find the note in-world
+
+### What we built
+- **EX-04 Rhythm** opens on the strings where the pick hits them (guitar turned sideways). Setup: big pattern name + arrows, 4 pattern buttons (Half notes, Quarters, Eighths, Pop), tempo − / +, calibration. Run: big count 1 & 2 & … (amber on a strum slot), 8 slot cells that flash on strum slots and get a line underneath (amber on time, white early/late, red missed), status, early/late line, counts, % on time. Every strum you play shakes the 3D strings; the window pulses on the beat. Pause band after 20 s silence (strum to resume, End & save). Same judging as the old screen (engine loaded from `/practice/`).
+- **EX-05 Find the note** opens on the neck lying flat (headstock left, frets 0–12). Big note name; when you find it an amber ring sits on the neck where you most likely played it (on your chosen string, else the lowest fret). Choosing one string dims the other five. Natural / All 12, string row, Skip, 10-note rounds, summary (average, slowest / fastest).
+- Rhythm's "Calibrate" borrows the drill's calibration: the camera glides to the fretboard, you calibrate, Back glides you back to Rhythm.
+
+### Tests (cloud, synthetic guitar into the site's audio clock)
+- Rhythm, Pop @ 70 with 120 ms simulated delay: 108 / 108 on time (+20 ms); 90 ms late → 0 % on time, measured +100 ms.
+- Find the note, all 12: 10 / 10 found, a planted wrong note shown ("That's G♯"), logged.
+- Calibration hand-off Rhythm → drill calibration → back to Rhythm works. Screens at 390×844, 360×680, 1440×900.
+
+### Open
+- Not tested on a real phone/guitar: is the sideways strum zone a nice view, is the flat neck readable on a phone, up-strum detection.
+
 ## Next step
-1. Kuba tests step 2 on the phone + guitar (clean check both modes, a drill round, calibration, pause) → fix what he reports.
-2. **Rebuild step 3: Rhythm + Find the note in-world** on the body. Same pattern: `src/exercises/<name>.js` using `ear.js` (engine from `/practice/`), an `ex:` shot, `open:` on the card.
-3. Then step 4 (log on the pedal, sensitivity on the amp knobs, red full-screen "alert" as the pause screen — the drill's pause band is the placeholder).
+1. Kuba tests steps 2–3 on the phone + guitar (clean check, drill, rhythm, find the note, calibration, pause) → fix what he reports.
+2. **Rebuild step 4:** (log on the pedal, sensitivity on the amp knobs, red full-screen "alert" as the pause screen — the drill's pause band is the placeholder).
 4. When Kuba says "go live": merge the redesign branch into `main`.

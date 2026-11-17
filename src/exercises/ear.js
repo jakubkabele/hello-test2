@@ -80,18 +80,18 @@ export function playClick(ctx, time, accent, list) {
 }
 
 // ── listening sensitivity (1 = forgiving … 5 = exact) ──
-// Same numbers as public/practice/settings.js (chord + drill blocks) — keep them in step.
+// Same numbers as public/practice/settings.js (chord, drill, findNote, rhythm blocks) — keep them in step.
 const LEVELS = [
   { name: 'Relaxed',    chord: { ring: 0.2, extra: 0.5, stick: 0.3, focus: 0.25, giveUp: 8000, spot: false },
-    drill: { mistakes: 1, quiet: 99, margin: 0, rank: 0.15, timing: 250 } },
+    drill: { mistakes: 1, quiet: 99, margin: 0, rank: 0.15, timing: 250 }, findNote: { cents: 50, hold: 3 }, rhythm: { timing: 90 } },
   { name: 'Easy-going', chord: { ring: 0.27, extra: 0.4, stick: 0.18, focus: 0.3, giveUp: 6500, spot: false },
-    drill: { mistakes: 1, quiet: 2, margin: 0.03, rank: 0.12, timing: 200 } },
+    drill: { mistakes: 1, quiet: 2, margin: 0.03, rank: 0.12, timing: 200 }, findNote: { cents: 45, hold: 3 }, rhythm: { timing: 75 } },
   { name: 'Balanced',   chord: { ring: 0.35, extra: 0.3, stick: 0.08, focus: 0.35, giveUp: 5000, spot: false },
-    drill: { mistakes: 0, quiet: 99, margin: 0.05, rank: 0.1, timing: 150 } },
+    drill: { mistakes: 0, quiet: 99, margin: 0.05, rank: 0.1, timing: 150 }, findNote: { cents: 40, hold: 4 }, rhythm: { timing: 60 } },
   { name: 'Precise',    chord: { ring: 0.45, extra: 0.25, stick: 0.03, focus: 0.4, giveUp: 4500, spot: true },
-    drill: { mistakes: 0, quiet: 0, margin: 0.08, rank: 0.07, timing: 120 } },
+    drill: { mistakes: 0, quiet: 0, margin: 0.08, rank: 0.07, timing: 120 }, findNote: { cents: 30, hold: 5 }, rhythm: { timing: 45 } },
   { name: 'Maximum',    chord: { ring: 0.55, extra: 0.2, stick: 0, focus: 0.45, giveUp: 4000, spot: true },
-    drill: { mistakes: 0, quiet: 0, margin: 0.1, rank: 0.05, timing: 100 } },
+    drill: { mistakes: 0, quiet: 0, margin: 0.1, rank: 0.05, timing: 100 }, findNote: { cents: 25, hold: 6 }, rhythm: { timing: 35 } },
 ];
 export function level() {
   try { return clamp(Number(JSON.parse(localStorage.getItem('practice.settings.v1') || '{}').sensitivity) || 3, 1, 5); } catch { return 3; }

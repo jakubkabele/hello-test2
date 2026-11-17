@@ -28,6 +28,8 @@ import { createEggs } from './ui/eggs.js';
 import { createTuner } from './exercises/tuner.js';
 import { createCleanCheck } from './exercises/cleancheck.js';
 import { createDrill } from './exercises/drill.js';
+import { createRhythm } from './exercises/rhythm.js';
+import { createFindNote } from './exercises/findnote.js';
 
 document.title = content.site.pageTitle;
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
@@ -101,6 +103,8 @@ bus.on('chapter', () => host.querySelectorAll('.ch.is-open').forEach((c) => { c.
 createTuner({ root: host, words: content.ex.tuner, liveLink, audio, focus, getStage: () => stage, director });
 createCleanCheck({ root: host, words: content.ex.cleancheck, audio, getStage: () => stage, director });
 createDrill({ root: host, words: content.ex.drill, audio, getStage: () => stage, director });
+createRhythm({ root: host, words: content.ex.rhythm, audio, getStage: () => stage, director });
+createFindNote({ root: host, words: content.ex.findnote, audio, getStage: () => stage, director });
 layout();
 director.measure();
 

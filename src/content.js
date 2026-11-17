@@ -57,8 +57,8 @@ export const content = {
     title: ['RIGHT', 'HAND.'],
     caption: 'Strum on the beat. Find any note.',
     cards: [
-      { code: 'EX-04', name: 'Rhythm', line: 'Strum patterns against the click', href: '/practice/#/exercise/rhythm' },
-      { code: 'EX-05', name: 'Find the note', line: 'Name it, find it, play it', href: '/practice/#/exercise/find-note' },
+      { code: 'EX-04', name: 'Rhythm', line: 'Strum patterns against the click', open: 'rhythm' },
+      { code: 'EX-05', name: 'Find the note', line: 'Name it, find it, play it', open: 'findnote' },
     ],
   },
 
@@ -139,6 +139,26 @@ export const content = {
       calUneven: 'Too uneven to measure — just follow the click.',
       calDone: 'Done ✓ Delay', calSaved: 'Redo it with headphones.', listeningDots: 'Listening…',
     },
+    rhythm: {
+      no: 'EX-04', name: 'Rhythm', jp: '律動',
+      start: 'Start', stop: 'Stop & save', resume: 'Resume', again: 'Again', setup: 'Change settings',
+      calibrate: 'Calibrate timing', delay: 'Delay', lastTime: 'Last', newOne: 'New at this tempo',
+      denied: 'Microphone not available.', failed: 'Could not load the listening engine.',
+      early: 'early', late: 'late', missed: 'missed', extra: 'Extra strum on', extraShort: 'extra', onTimeShort: 'on time',
+      onTime: '% on time', paused: 'Paused', pausedText: 'Nothing heard for 20 s. Strum to carry on — a count-in comes first.',
+      endSave: 'End & save', partial: 'Partial round', upFrom: 'Up from', baseline: 'First round of this pattern at this tempo — your baseline.',
+    },
+    findnote: {
+      no: 'EX-05', name: 'Find the note', jp: '音探',
+      start: 'Start', stop: 'Stop', again: 'Go again', skip: 'Skip this note',
+      notes: 'Notes', natural: 'Natural', all: 'All 12', string: 'String', any: 'Any',
+      idle: 'A note appears — find it, play it, fast.', anywhere: 'anywhere on the neck', onThe: 'on the', stringWord: 'string',
+      thats: 'That’s', paused: 'Paused', pausedSub: 'Play anything to carry on.',
+      denied: 'Microphone not available.', failed: 'Could not load the listening engine.',
+      nothing: 'Nothing found this time.', average: 'average', stoppedEarly: 'stopped early',
+      faster: 'Faster than last time', lastTime: 'Last time', baseline: 'First round in this mode — your baseline.',
+      slowest: 'Slowest', fastest: 'Fastest', wrongNotes: 'wrong notes on the way', skipped: 'skipped',
+    },
   },
 };
 
@@ -147,6 +167,8 @@ export const PARTS = {
   headstock: { en: 'HEADSTOCK', jp: 'ヘッド' },
   frets: { en: 'FRETBOARD', jp: '指板' },
   chordbox: { en: 'FRETS 0–5', jp: '指板' },
+  fretmap: { en: 'FRETS 0–12', jp: '音位置' },
+  strum: { en: 'STRUM ZONE', jp: '弦' },
   neck: { en: 'NECK', jp: 'ネック' },
   pickups: { en: 'PICKUPS', jp: 'ピックアップ' },
   bridge: { en: 'BRIDGE', jp: 'ブリッジ' },

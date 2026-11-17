@@ -29,6 +29,8 @@ const DEFAULT_ANCHORS = {
   headstock: [-0.02, 5.85, 0.15],
   frets: [0, 4.2, 0.3],
   chordbox: [0, 4.12, 0.3],     // nut → 5th fret: where chord shapes live
+  fretmap: [0, 3.22, 0.3],      // nut → 12th fret: the note map
+  strum: [0, 0.2, 0.34],        // where the pick hits the strings (neck end of the body)
   neck: [0, 2.5, 0.3],
   pickups: [0, -0.62, 0.3],
   bridge: [0, -1.62, 0.32],

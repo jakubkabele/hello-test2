@@ -232,8 +232,21 @@ export function createDrill({ root, words, audio, getStage, director }) {
     if (view === 'summary') { setView('setup'); renderSetup(); }
     else if (view === 'cal') {
       if (calRun) stopCalibration();
-      if (el.dataset.then === '1') { calSkipped = true; newRound(); } else { setView('setup'); renderSetup(); }
+      if (calReturn) goBackTo(calReturn);
+      else if (el.dataset.then === '1') { calSkipped = true; newRound(); } else { setView('setup'); renderSetup(); }
     }
+  });
+
+  // Another exercise (Rhythm) can borrow the calibration: glide here, calibrate, glide back.
+  let calReturn = '';
+  function goBackTo(name) {
+    calReturn = '';
+    const off = bus.on('ex:closed', () => { off(); director.enter(name); });
+    director.exit();
+  }
+  bus.on('calibrate', (from) => {
+    const off = bus.on('ex:closed', () => { off(); calReturn = from; director.enter('drill'); });
+    director.exit();
   });
   $('.dr-end').addEventListener('click', () => { if (!finishRound(true)) { setView('setup'); renderSetup(); } });
   $('.dr-discard').addEventListener('click', () => { clearRound(); setView('setup'); renderSetup(); });
@@ -732,6 +745,7 @@ export function createDrill({ root, words, audio, getStage, director }) {
       E = eng;
       if (first) restore();
       if (!open) return;
+      if (calReturn) { openCalibration(false); alt.textContent = words.back; return; }
       if (round && paused) { setView('run'); go.textContent = words.resume; renderPaused(); drawHistory(); return; }
       if (view !== 'summary') setView('setup');
       renderSetup();
@@ -739,6 +753,7 @@ export function createDrill({ root, words, audio, getStage, director }) {
   });
   bus.on('ex:leave', (n) => {
     if (n !== 'drill') return;
+    calReturn = '';
     stopAll();
     picker.close();
     open = false;
