@@ -81,18 +81,14 @@ export function createCleanCheck({ root, words, audio, getStage, director }) {
     if (settings.mode === b.dataset.mode) return;
     settings.mode = b.dataset.mode; savePrefs(PREFS, settings); restartFresh();
   }));
-  // the chord picker sheet: Auto, then every shape we know with a tiny fingering diagram
+  // the chord picker sheet: Auto on top, then a chord chart (root × type)
   const picker = createPicker(el);
   pickSel.addEventListener('click', async () => {
     if (!E) return;
-    const item = (c) => ({ value: c.name, label: c.name, shape: c });
-    const v = await picker.open({
-      title: words.chord, jp: '和音', value: settings.pick === 'manual' ? settings.chord : 'auto',
-      groups: [
-        { items: [{ value: 'auto', label: words.auto, sub: words.autoSub, accent: true }], wide: true },
-        { label: words.openChords, items: E.Chords.LIBRARY.filter((c) => !c.isBarre).map(item) },
-        { label: words.barreChords, items: E.Chords.LIBRARY.filter((c) => c.isBarre).map(item) },
-      ],
+    const v = await picker.chords({
+      title: words.chord, library: E.Chords.LIBRARY,
+      value: settings.pick === 'manual' ? settings.chord : 'auto',
+      auto: { value: 'auto', label: words.auto, sub: words.autoSub },
     });
     if (v === null) return;
     if (v === 'auto') settings.pick = 'auto';

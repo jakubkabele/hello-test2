@@ -105,7 +105,7 @@ export const content = {
     cleancheck: {
       no: 'EX-02', name: 'Clean check', jp: '和音確認',
       start: 'Start listening', stop: 'Stop', again2: 'Check again',
-      strum: 'Strum', string: 'String by string', chord: 'Chord', auto: 'Auto', autoSub: 'It hears which chord you play', openChords: 'Open chords', barreChords: 'Barre chords',
+      strum: 'Strum', string: 'String by string', chord: 'Chord', auto: 'Auto', autoSub: 'it hears which chord you play',
       loading: 'Waking the ear…', failed: 'Could not load the listening engine — check the connection.',
       denied: 'Microphone not available.',
       idleStrum: 'Tap start, strum a chord.', idleString: 'Tap start, then pluck each string, low to high.',
@@ -122,7 +122,8 @@ export const content = {
     drill: {
       no: 'EX-03', name: 'Change drill', jp: '持替',
       start: 'Start', pause: 'Pause', resume: 'Resume', again: 'Again', setup: 'Change settings', back: 'Back',
-      pair: 'Pair', from: 'From', to: 'To', customPair: 'My own pair', ownLabel: 'Your own', openChords: 'Open chords', barreChords: 'Barre chords', every: 'Change every',
+      pair: 'Pair', from: 'From', to: 'To', customPair: 'My own pair', ownLabel: 'Own', change: 'pick chords',
+      groupNotes: ['Open → open. Get the hands moving.', 'The main goal: land the barre on the beat.', 'Start slow — 50–60 BPM, every 4 beats.'], every: 'Change every',
       click: 'Click', autoTempo: 'Auto tempo', calibrate: 'Calibrate timing', delay: 'Delay',
       twoDifferent: 'Pick two different chords', lastTime: 'Last', best: 'best', newPair: 'New pair',
       denied: 'Microphone not available.', failed: 'Could not load the listening engine.',

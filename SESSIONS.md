@@ -162,7 +162,8 @@ Built:
 - Screens at 390×844, 360×680, 1440×900; no console errors.
 
 ### Same day — Kuba: "I like it", but choosing a chord / pair opened the phone's grey dropdown
-- Replaced every dropdown with an **in-world picker sheet** (`src/exercises/picker.js`): slides up full-screen with the amber hazard stripe; chords as a grid of cells (big name + tiny fingering diagram, Open / Barre groups, current one amber); pairs as two-column rows grouped warm-up / open→barre / barre→barre with your last score per pair; "My own pair" asks From, then To. ✕ or Esc closes without changing anything.
+- Kuba then: menus "a bit hectic" → compress + give them order. Now: chord picker = **chord chart** (one row per root C D E F F# G A B, one column per type maj · m · 7 · m7 · maj7 · sus2 · sus4; barre chords underlined; fits one screen), pair picker = **tabs by level** (Warm-up · Open → barre · Barre → barre · Own) with slim one-line rows + last score. On phones it's a bottom sheet (thumb reach), the guitar stays visible above.
+- First version (replaced): Replaced every dropdown with an **in-world picker sheet** (`src/exercises/picker.js`): slides up full-screen with the amber hazard stripe; chords as a grid of cells (big name + tiny fingering diagram, Open / Barre groups, current one amber); pairs as two-column rows grouped warm-up / open→barre / barre→barre with your last score per pair; "My own pair" asks From, then To. ✕ or Esc closes without changing anything.
 
 ### Open
 - Not tested on a real phone/guitar: is the fretboard close-up readable, are tinted strings clear enough, metronome loud enough, frame rate during the drill.

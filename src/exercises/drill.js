@@ -33,9 +33,9 @@ const SHOW_RANGE = 0.4;             // timing line shows ±400 ms
 const CAL_BPM = 70, CAL_CLICKS = 8;
 
 const GROUPS = [
-  ['Warm-up · open → open', [['C', 'G'], ['G', 'D'], ['Am', 'Em'], ['C', 'Am'], ['D', 'A'], ['Em', 'G'], ['A', 'E'], ['Am', 'Dm'], ['E', 'Am'], ['D', 'Em']]],
+  ['Warm-up', [['C', 'G'], ['G', 'D'], ['Am', 'Em'], ['C', 'Am'], ['D', 'A'], ['Em', 'G'], ['A', 'E'], ['Am', 'Dm'], ['E', 'Am'], ['D', 'Em']]],
   ['Open → barre', [['C', 'F'], ['Am', 'F'], ['D', 'Bm'], ['G', 'Bm'], ['Em', 'Bm'], ['A', 'F#m'], ['Dm', 'F'], ['E', 'F#m']]],
-  ['Barre → barre · start slow', [['F', 'Bm'], ['F', 'G barre'], ['Bm', 'F#m'], ['F', 'Gm'], ['Bm', 'B'], ['G barre', 'Bm'], ['Cm', 'F']]],
+  ['Barre → barre', [['F', 'Bm'], ['F', 'G barre'], ['Bm', 'F#m'], ['F', 'Gm'], ['Bm', 'B'], ['G barre', 'Bm'], ['Cm', 'F']]],
 ];
 const GROUP_IDS = ['warmup', 'barre1', 'barre2'];
 
@@ -141,17 +141,17 @@ export function createDrill({ root, words, audio, getStage, director }) {
   const pairValue = () => (cfg.group === 'custom' ? 'custom' : `${cfg.group}:${cfg.pair.join('|')}`);
   pairSel.addEventListener('click', async () => {
     if (!E) return;
-    const v = await picker.open({
-      title: words.pair, jp: '持替', value: pairValue(),
-      groups: [
+    const v = await picker.list({
+      title: words.pair, value: pairValue(),
+      tabs: [
         ...GROUPS.map(([label, pairs], gi) => ({
-          label, wide: true,
-          items: pairs.map((p) => {
+          id: GROUP_IDS[gi], label, note: words.groupNotes[gi],
+          rows: pairs.map((p) => {
             const last = lastResult(p);
-            return { value: `${GROUP_IDS[gi]}:${p.join('|')}`, label: `${p[0]} ↔ ${p[1]}`, sub: last ? `${words.lastTime} ${last.score.changesPerMin}/min` : words.newPair };
+            return { value: `${GROUP_IDS[gi]}:${p.join('|')}`, label: `${p[0]} ↔ ${p[1]}`, sub: last ? `${last.score.changesPerMin}/min` : words.newPair };
           }),
         })),
-        { label: words.ownLabel, wide: true, items: [{ value: 'custom', label: words.customPair, sub: `${cfg.custom[0]} ↔ ${cfg.custom[1]}`, accent: true }] },
+        { id: 'custom', label: words.ownLabel, rows: [{ value: 'custom', label: `${cfg.custom[0]} ↔ ${cfg.custom[1]}`, sub: words.change, accent: true }] },
       ],
     });
     if (v === null) return;
@@ -166,14 +166,7 @@ export function createDrill({ root, words, audio, getStage, director }) {
     save(); renderSetup();
   });
   function pickChord(title, value) {
-    const item = (c) => ({ value: c.name, label: c.name, shape: c });
-    return picker.open({
-      title, jp: '和音', value,
-      groups: [
-        { label: words.openChords, items: E.Chords.LIBRARY.filter((c) => !c.isBarre).map(item) },
-        { label: words.barreChords, items: E.Chords.LIBRARY.filter((c) => c.isBarre).map(item) },
-      ],
-    });
+    return picker.chords({ title, value, library: E.Chords.LIBRARY });
   }
   fromSel.addEventListener('click', async () => { const v = await pickChord(words.from, cfg.custom[0]); if (v !== null) { cfg.custom[0] = v; save(); renderSetup(); } });
   toSel.addEventListener('click', async () => { const v = await pickChord(words.to, cfg.custom[1]); if (v !== null) { cfg.custom[1] = v; save(); renderSetup(); } });

@@ -1,22 +1,24 @@
 // The in-world picker: a sheet that slides up over the exercise (instead of the phone's
-// own grey dropdown). One per exercise. open() resolves with the chosen value, or null.
+// own grey dropdown). One per exercise. Every open*() resolves with the chosen value, or null.
 //
-//   picker.open({ title, jp, value, groups: [{ label, wide, items: [{ value, label, sub, shape }] }] })
-//   wide  = two big rows per line (pairs) instead of a grid of chord cells
-//   shape = a chord shape → a tiny fingering diagram under its name
+//   picker.chords({ title, value, library, auto })   chord chart: one row per root note,
+//                                                    one column per chord type
+//   picker.list({ title, value, tabs })              tabs on top, slim one-line rows below
+//        tabs: [{ id, label, rows: [{ value, label, sub, accent }] }]
 
 import { esc } from '../chapters/common.js';
 
-// tiny chord box: 6 strings, frets 1–5, dots; × / ○ above the nut
+const ROOTS = [[0, 'C'], [2, 'D'], [4, 'E'], [5, 'F'], [6, 'F#'], [7, 'G'], [9, 'A'], [11, 'B']];
+const TYPES = [['', 'maj'], ['m', 'm'], ['7', '7'], ['m7', 'm7'], ['maj7', 'maj7'], ['sus2', 'sus2'], ['sus4', 'sus4']];
+
+// tiny chord box: 6 strings, frets, dots; × / ○ above the nut (shows the current chord)
 export function miniDiagram(shape) {
   if (!shape) return '';
   const X = (i) => 4 + i * 6.4, NUT = 7, F = 5.4;
-  const top = shape.barre ? Math.max(1, shape.barre.fret) : 1;
-  const base = Math.max(...shape.frets) > 5 ? top : 1;      // keep high shapes in view
-  const Y = (f) => NUT + (f - base + 0.5) * F;
-  let s = `<svg class="mini" viewBox="0 0 40 36" aria-hidden="true">`;
-  for (let f = 0; f <= 5; f++) s += `<line x1="${X(0)}" x2="${X(5)}" y1="${NUT + f * F}" y2="${NUT + f * F}" class="${f === 0 && base === 1 ? 'nut' : 'fr'}"/>`;
-  for (let i = 0; i < 6; i++) s += `<line x1="${X(i)}" x2="${X(i)}" y1="${NUT}" y2="${NUT + 5 * F}" class="st"/>`;
+  const Y = (f) => NUT + (f - 0.5) * F;
+  let s = '<svg class="mini" viewBox="0 0 40 36" aria-hidden="true">';
+  for (let f = 0; f <= 5; f++) s += `<line x1="${X(0)}" x2="${X(5)}" y1="${NUT + f * F}" y2="${NUT + f * F}" class="${f ? 'fr' : 'nut'}"/>`;
+  for (let i = 0; i < 6; i++) s += `<line x1="${X(i)}" x2="${X(i)}" y1="${NUT}" y2="${NUT + 5 * F}"/>`;
   if (shape.barre) {
     const { fret, from, to } = shape.barre;
     s += `<rect x="${X(from) - 2.2}" y="${Y(fret) - 2.2}" width="${X(to) - X(from) + 4.4}" height="4.4" rx="2.2" class="dt"/>`;
@@ -36,8 +38,7 @@ export function createPicker(host) {
   el.setAttribute('aria-modal', 'true');
   el.innerHTML = `
     <div class="pk-in">
-      <header class="pk-head"><span class="pk-title"><b></b><i></i></span><button type="button" class="pk-x" aria-label="Close">✕ <span>CLOSE</span></button></header>
-      <i class="pk-rule"></i>
+      <header class="pk-head"><b class="pk-title"></b><button type="button" class="pk-x" aria-label="Close">✕ <span>CLOSE</span></button></header>
       <div class="pk-body" data-lenis-prevent></div>
     </div>`;
   host.appendChild(el);
@@ -52,37 +53,62 @@ export function createPicker(host) {
     document.removeEventListener('keydown', onKey, true);
     d(v);
   }
-  function onKey(e) {
-    if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); close(null); }
-  }
+  function onKey(e) { if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); close(null); } }
   el.querySelector('.pk-x').addEventListener('click', () => close(null));
   body.addEventListener('click', (e) => {
+    const tab = e.target.closest('[data-tab]');
+    if (tab) { showTab(tab.dataset.tab); return; }
     const b = e.target.closest('[data-v]');
     if (b) close(b.dataset.v);
   });
+  function showTab(id) {
+    body.querySelectorAll('[data-tab]').forEach((t) => t.classList.toggle('is-on', t.dataset.tab === id));
+    body.querySelectorAll('[data-pane]').forEach((p) => { p.hidden = p.dataset.pane !== id; });
+  }
 
-  function open({ title, jp = '', value = '', groups }) {
+  function show(title, html) {
     if (done) close(null);
-    el.querySelector('.pk-title b').textContent = title;
-    el.querySelector('.pk-title i').textContent = jp;
-    body.innerHTML = groups.map((g) => `
-      ${g.label ? `<h3 class="pk-group">${esc(g.label)}</h3>` : ''}
-      <div class="pk-grid${g.wide ? ' is-wide' : ''}">
-        ${g.items.map((it) => `
-          <button type="button" class="pk-item${String(it.value) === String(value) ? ' is-cur' : ''}${it.accent ? ' is-accent' : ''}" data-v="${esc(it.value)}">
-            <b>${esc(it.label)}</b>${it.shape ? miniDiagram(it.shape) : ''}${it.sub ? `<span>${esc(it.sub)}</span>` : ''}
-          </button>`).join('')}
-      </div>`).join('');
+    el.querySelector('.pk-title').textContent = title;
+    body.innerHTML = html;
+    body.scrollTop = 0;
     el.classList.add('is-open');
     document.documentElement.classList.add('is-picking');
     document.addEventListener('keydown', onKey, true);
-    // bring the current choice into view
-    requestAnimationFrame(() => {
-      const cur = body.querySelector('.is-cur');
-      body.scrollTop = cur ? Math.max(0, cur.offsetTop - body.clientHeight / 3) : 0;
-    });
     return new Promise((res) => { done = res; });
   }
 
-  return { open, close: () => close(null), get isOpen() { return !!done; } };
+  // ── chord chart ──
+  function chords({ title, value, library, auto = null }) {
+    const cur = library.find((c) => c.name === value);
+    const cell = (shapes) => {
+      if (!shapes.length) return '<i class="pk-empty">·</i>';
+      return shapes.map((c) => `<button type="button" class="pk-c${c.name === value ? ' is-cur' : ''}${c.isBarre ? ' is-barre' : ''}" data-v="${esc(c.name)}" aria-label="${esc(c.name)}">${esc(c.isBarre && c.name.includes(' ') ? c.chord : c.name)}</button>`).join('');
+    };
+    const rows = ROOTS.map(([root, label]) => `
+      <span class="pk-root">${label}</span>
+      ${TYPES.map(([q]) => `<span class="pk-cell">${cell(library.filter((c) => c.root === root && c.q === q).sort((a, b) => a.isBarre - b.isBarre))}</span>`).join('')}`).join('');
+    return show(title, `
+      ${auto ? `<button type="button" class="pk-auto${value === auto.value ? ' is-cur' : ''}" data-v="${esc(auto.value)}"><b>${esc(auto.label)}</b><span>${esc(auto.sub)}</span></button>` : ''}
+      <div class="pk-chart">
+        <span></span>${TYPES.map(([, t]) => `<span class="pk-type">${t}</span>`).join('')}
+        ${rows}
+      </div>
+      <p class="pk-foot"><span class="pk-key"><i></i> barre</span>${cur ? `<span class="pk-now">${miniDiagram(cur)}<b>${esc(cur.name)}</b></span>` : ''}</p>`);
+  }
+
+  // ── tabs + slim rows ──
+  function list({ title, value, tabs }) {
+    const start = (tabs.find((t) => t.rows.some((r) => r.value === value)) || tabs[0]).id;
+    const p = show(title, `
+      <div class="pk-tabs" role="tablist">${tabs.map((t) => `<button type="button" role="tab" data-tab="${esc(t.id)}">${esc(t.label)}</button>`).join('')}</div>
+      ${tabs.map((t) => `
+        <div class="pk-pane" data-pane="${esc(t.id)}">
+          ${t.note ? `<p class="pk-note">${esc(t.note)}</p>` : ''}
+          ${t.rows.map((r) => `<button type="button" class="pk-row${r.value === value ? ' is-cur' : ''}${r.accent ? ' is-accent' : ''}" data-v="${esc(r.value)}"><b>${esc(r.label)}</b><i></i><span>${esc(r.sub || '')}</span></button>`).join('')}
+        </div>`).join('')}`);
+    showTab(start);
+    return p;
+  }
+
+  return { chords, list, close: () => close(null), get isOpen() { return !!done; } };
 }
