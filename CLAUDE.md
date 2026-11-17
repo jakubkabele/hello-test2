@@ -11,7 +11,7 @@ One immersive 3D world: you scroll along a guitar rig and each stop holds exerci
   rebuilt, its card links to the old plain screens at `/practice/` (the original app, untouched).
 - Emblem 琴 (koto/lyre), kana オルフェウス. Keep small text to a minimum — Kuba finds it cluttered.
   Captions stay folded until the big title is tapped. Boot = three "cores" (耳 手 律) that deliberate, then approve.
-- **Status:** rebuild step 1 of 4 done (scroll menu, amp/pedal/stage, Tuner in-world). Next: step 2, chords in-world.
+- **Status:** rebuild steps 1–2 of 4 done (scroll menu, amp/pedal/stage, Tuner, Clean check + Change drill in-world). Next: step 3, Rhythm + Find the note in-world (body).
 - Live: https://hello-test2-inky.vercel.app
 - Blueprints (exercise behaviour): `docs/blueprint-v1.md`, `docs/blueprint-v2.md`
 - Session history + next step: `SESSIONS.md` — read its last section first.
@@ -29,7 +29,8 @@ One immersive 3D world: you scroll along a guitar rig and each stop holds exerci
 - **Three.js** (3D guitar + blur shader), **GSAP ScrollTrigger + Lenis** (scroll story).
   The 3D code is one lazy chunk (`src/three/*`), loaded after the start-up screen is painted.
 - Look: retro-futuristic command centre. Near-black `#0B0C14`, indigo `#1E2140`, slate `#4A5A8C`,
-  violet `#7A6BA8`, paper white `#E9E7F2`, **one** accent: faded amber `#C9A25A` (warnings + focus lock only).
+  violet `#7A6BA8`, paper white `#E9E7F2`, **one** accent: faded amber `#C9A25A` (focus lock, "good / in tune / clean", warnings).
+  Inside exercises only: `--alarm #C2564B` for a wrong string / missed change.
   Type: Anton (huge stacked titles), Shippori Mincho 800 (serif labels + Japanese), IBM Plex Mono (readouts).
 - Phone portrait first. Audio starts from the first tap. Respects `prefers-reduced-motion`.
 
@@ -46,14 +47,15 @@ One immersive 3D world: you scroll along a guitar rig and each stop holds exerci
 | `src/core/input.js` | Touch + mouse on the stage: strings (tap/strum), drag window, rotate, hold |
 | `src/core/layout.js` | Viewport sizes + `homeRect(shot)` |
 | `src/three/stage.js` | Renderer, camera, lights, per-frame guitar pose, quality tiers (low/mid/high, auto step-down) |
-| `src/three/guitar.js` | Procedural guitar + amp + recorder pedal + stage podium; vibrating strings, chord dots, turnable pegs (`setPeg`), anchors (`amp`, `pedal`, `peg0–5`…). `.glb` swap notes at the top |
+| `src/three/guitar.js` | Procedural guitar + amp + recorder pedal + stage podium; vibrating strings, chord dots (`setChord`, `'x'` = don't play), string tint (`setTint(i, 'ok'|'bad'|'dim'|null)`), live ring (`setLive`), turnable pegs (`setPeg`), anchors (`amp`, `pedal`, `chordbox` = nut→5th fret, `peg0–5`…). `.glb` swap notes at the top |
 | `src/three/guitar-math.js` | Fret / string positions (no Three.js, used by input too) |
 | `src/three/backdrop.js` | Background shader (colour field, hex grid, range rings, pluck ripple) + dust |
 | `src/three/post.js` | Blur chain + final pass: sharp inside the window, blurred outside; grain, colour fringing, scanlines, vignette |
 | `src/audio/engine.js` | Web Audio: Karplus–Strong plucks, ambient hum, UI blips, mute (key `site.muted`), `duck()` = silent while an exercise listens, overdrive |
 | `src/audio/livelink.js` | Mic → YIN pitch → `bus` event `live` (hz, level…). Exercises start/stop it |
 | `src/chapters/*.js` | `hero.js`, `stop.js` (one generic scroll stop: title + cards), `common.js` = shared title/tag/entrance |
-| `src/exercises/*.js` | Exercises that run in the 3D world. `tuner.js` done (mic → nearest open string → cents; peg turns, string shakes, logs to `practice.log.v1`) |
+| `src/exercises/*.js` | Exercises that run in the 3D world. `tuner.js` (mic → nearest open string → cents; peg turns, string shakes), `cleancheck.js` (EX-02: strum / string-by-string × auto / pick; chord dots on the neck, strings tinted amber = clean / red = problem, amber ring = string to pluck), `drill.js` (EX-03: setup / run / pause band / summary / calibration views; neck shows the chord to land next, window pulses on each beat) |
+| `src/exercises/ear.js` | Shared by exercises: **loads the practice app's own engine files** (`/practice/audio.js`, `chords.js`, `timing.js`, `pause.js` → `Sound`, `Chords`, `Timing`, `Pause`) — no copies; mic on the site's audio clock (`openMic`), metronome `playClick`, sensitivity numbers (`profile()`, mirror of `settings.js` chord + drill blocks — keep in step), `addLog` |
 | `src/ui/*.js` | `hud` (index, readouts, toggles), `boot`, `cursor`, `keys`, `eggs` (3 hidden things, listed at the top of the file) |
 | `src/styles/*.css` | `base` (tokens, focus frame, boot, grain), `hud`, `chapters` (phone first, desktop at the bottom) |
 | `public/clips/` | Put practice videos here, then reference them in `content.js` |
@@ -64,7 +66,10 @@ One immersive 3D world: you scroll along a guitar rig and each stop holds exerci
 - Chapters are fixed layers; `#track` only provides scroll length. No nested scrolling.
 - Vertical swipes must always scroll. Sideways drag = rotate / move window; hold = focus.
 - While an exercise listens the site makes no sound (`audio.duck(true)`); the guitar only mirrors.
-- Exercises share data with the old screens: log `practice.log.v1`, sensitivity `practice.settings.v1` (`sensitivity` 1–5).
+- Exercises share data with the old screens: log `practice.log.v1`, sensitivity `practice.settings.v1` (`sensitivity` 1–5),
+  timing calibration `practice.timing.v1`, clean-check / drill settings, unfinished drill round `practice.drill.unfinished`.
+- New in-world exercise = `src/exercises/<name>.js` + an `ex:` shot in `shots.js` + `open: '<name>'` on its card + words in `content.ex`;
+  set `el.dataset.ex = '<name>'` so it gets `--wx/--wy/--ww/--wh` of its window. Layout: `.ex-read` (big readout beside the window) + `.ex-panel` (controls above `.ex-go`).
 - Quality: `?q=low|mid|high` pins the render tier; `?debug` exposes `window.__site`.
 - Real phone heights are short (≈680–800 px with the address bar): check `@media (max-height: 760px)` when adding content.
 
@@ -108,7 +113,7 @@ One immersive 3D world: you scroll along a guitar rig and each stop holds exerci
 - Vercel project `hello-test2` (team `jakubkabele1`), linked to GitHub; **every push to `main` deploys** to production.
   Vercel runs `npm run build` and serves `dist/` (see `vercel.json`); other branches get preview links.
 - Work branch `claude/hello-test2-repo-9g3mvq`; push to both it and `main`.
-- The site overhaul was built on branch `ccr-67fdb530-98eink` (preview only) — it goes to `main` when Kuba says so.
+- The site overhaul: step 1 on branch `ccr-67fdb530-98eink`, step 2 continues on `ccr-f69829fe-b41sza` (contains step 1). Preview only — it goes to `main` when Kuba says so.
 
 ## Testing (no real guitar in the cloud)
 - Practice app: synthetic guitar audio (Karplus-Strong plucks/strums, optional phone-mic high-pass) generated with Python/numpy.
@@ -117,6 +122,8 @@ One immersive 3D world: you scroll along a guitar rig and each stop holds exerci
 - Site: `npm run build && npx vite preview`, then Playwright Chromium with
   `--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader` (software WebGL). Screenshot every shot at
   360×680, 412×800, 390×844 and 1440×900; real touch gestures via CDP `Input.dispatchTouchEvent`.
+- In-world exercises: replace `navigator.mediaDevices.getUserMedia` (init script) with a `MediaStreamDestination` on `__site.audio.context` and
+  play synthetic strums into it; hook `AudioBufferSourceNode.prototype.start` to learn the metronome click times → strums land exactly on / off the beat.
 - Scripts live in the session scratchpad (not committed); recreate as needed.
 
 ## Build order (practice app, blueprint v2)

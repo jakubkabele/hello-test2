@@ -28,6 +28,7 @@ export const PALETTE = {
 const DEFAULT_ANCHORS = {
   headstock: [-0.02, 5.85, 0.15],
   frets: [0, 4.2, 0.3],
+  chordbox: [0, 4.12, 0.3],     // nut → 5th fret: where chord shapes live
   neck: [0, 2.5, 0.3],
   pickups: [0, -0.62, 0.3],
   bridge: [0, -1.62, 0.32],
@@ -599,6 +600,14 @@ export async function loadGuitar({ modelUrl = null } = {}) {
       which.position.set(stringX(i, noteY(fr)), noteY(fr), markZ);
     });
   }
+  // colour a string to show a result (ok / problem); null = its normal colour
+  const baseCol = strings.map((s) => s.u.uColor.value.clone());
+  const TINT = { ok: new THREE.Color(PALETTE.amber), bad: new THREE.Color(0xc2564b), dim: new THREE.Color(0x4a4f72) };
+  function setTint(i, kind) {
+    const s = strings[i];
+    if (!s) return;
+    s.u.uColor.value.copy(TINT[kind] || baseCol[i]);
+  }
   function setLive(i, fret) {
     if (i === null || i === undefined) { liveMark.visible = false; return; }
     liveMark.visible = true;
@@ -724,5 +733,5 @@ export async function loadGuitar({ modelUrl = null } = {}) {
     return out;
   }
 
-  return { root, model, parts, anchors, anchorAt, setPeg, setStage, ampKnobs: built.ampKnobs, strings, hit, pluck, sustain, setChord, setLive, setExplode, update, redrawText };
+  return { root, model, parts, anchors, anchorAt, setPeg, setStage, ampKnobs: built.ampKnobs, strings, hit, pluck, sustain, setChord, setLive, setTint, setExplode, update, redrawText };
 }

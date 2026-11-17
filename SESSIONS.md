@@ -146,8 +146,28 @@ Built:
 - **Boot restyled like a deciding supercomputer** (own design): three cores — 耳 EAR, 手 HAND, 律 TIME — flicker "審議中" (deliberating), then turn solid "承認" (approved) one by one, then all go amber with "ORPHEUS ONLINE". Hazard stripes above and below. Still ≈2.7 s, tap to skip. Markup in `index.html`, timing in `src/ui/boot.js`, styles at the end of `base.css`.
 - Known nit: the core kanji use the Japanese font, which loads a moment late — on a slow connection they may appear in the phone's own font for the first instant.
 
+## 2026-11-17 — ORPHEUS rebuild step 2: chords in-world
+
+### What we built
+- **EX-02 Clean check** and **EX-03 Change drill** now open inside the 3D world (cards on the Chords stop). The camera glides to a close-up of the first five frets (`chordbox` anchor).
+- The hearing engine is **not copied**: `src/exercises/ear.js` loads the practice app's own `audio.js`, `chords.js`, `timing.js`, `pause.js` from `/practice/`. Same rules, same thresholds, same saved data (log, sensitivity, calibration, settings, unfinished round).
+- **Clean check:** big chord name beside the window, the chord's dots on the 3D neck, the strings you play shake, and each string turns **amber (clean)** or **red (problem)**; a row of six string cells repeats it with ✓ / ! / ✕. String-by-string: an amber ring sits on the string + fret to pluck next; tap a string cell to redo it. Strum / String-by-string switch + chord picker (Auto or any of 31). Hidden-string spot check button (automatic at Precise / Maximum). Paused after 20 s silence.
+- **Change drill:** setup (pair picker with warm-up / open→barre / barre→barre + own pair, tempo − / +, change every 2 / 4, click, auto tempo, calibrate), run (beat lights 3·2·1 + big dot with the chord, bar, status, early/late line, history squares), summary (big changes/min, comparison, details, next tempo), calibration. The **big chord name, the big dot and the dots on the neck all show the chord to land next**; the focus window pulses on every beat. Pause = a striped warning band (Resume / End & save / Discard) — step 4 turns it into the red alert.
+- 3D: `setTint()` colours a string. New colour `--alarm` (only inside exercises).
+
+### Tests (cloud, software WebGL, synthetic guitar fed straight into the site's audio clock)
+- Clean check strum (Auto): Em, C, F → clean ✓; Em with a dead G string → G string flagged (heard as E, "G string quiet"). String-by-string Em → 6/6 clean. Both logged.
+- Drill Am ↔ F @ 60, 120 ms simulated phone delay: on time → 11 clean + the 3 planted wrong chords caught (avg +21 ms); 300 ms late → 14 late (+320); 200 ms early → 14 early (−182).
+- Pause: silence → paused band after 20 s; strumming again → count-in "Welcome back"; leaving keeps the round; End & save → partial logged. Calibration: 8 strums at +120 ms → saved 133 ms, then the round starts.
+- Screens at 390×844, 360×680, 1440×900; no console errors.
+
+### Open
+- Not tested on a real phone/guitar: is the fretboard close-up readable, are tinted strings clear enough, metronome loud enough, frame rate during the drill.
+- Barre chords show as single dots (no bar drawn on the neck yet).
+- Still on branch preview (not `main`).
+
 ## Next step
-1. Kuba tests the preview on his phone (tuner on a real guitar, peg direction, smoothness, new boot, tap-to-open captions) → fix what he reports.
-2. **Rebuild step 2: Clean chord check + Chord change drill in-world** on the fretboard. Pattern to copy: `src/exercises/tuner.js` + an `ex:` shot in `src/config/shots.js` + `open: '<name>'` on the card in `src/content.js`; reuse the hearing engine from `public/practice/chords.js` / `timing.js`.
-3. Then step 3 (Rhythm + Find the note, body), step 4 (log on the pedal, sensitivity on the amp knobs, red full-screen "alert" as the pause screen).
-4. When Kuba says "go live": merge branch `ccr-67fdb530-98eink` into `main`.
+1. Kuba tests step 2 on the phone + guitar (clean check both modes, a drill round, calibration, pause) → fix what he reports.
+2. **Rebuild step 3: Rhythm + Find the note in-world** on the body. Same pattern: `src/exercises/<name>.js` using `ear.js` (engine from `/practice/`), an `ex:` shot, `open:` on the card.
+3. Then step 4 (log on the pedal, sensitivity on the amp knobs, red full-screen "alert" as the pause screen — the drill's pause band is the placeholder).
+4. When Kuba says "go live": merge the redesign branch into `main`.

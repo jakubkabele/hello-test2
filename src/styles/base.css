@@ -12,6 +12,7 @@
   --violet: #7A6BA8;
   --paper: #E9E7F2;
   --amber: #C9A25A;
+  --alarm: #C2564B;      /* a wrong string / missed change — only inside exercises */
   --line: rgba(233, 231, 242, 0.28);
   --line-soft: rgba(233, 231, 242, 0.14);
   --dim: rgba(233, 231, 242, 0.6);

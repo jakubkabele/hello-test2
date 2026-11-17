@@ -56,6 +56,17 @@ export const SHOTS = [
     win: { m: [0.3, 0.13, 0.4, 0.33], d: [0.42, 0.14, 0.16, 0.56] },
     fit: { m: 2.3, d: 2.6 }, rot: [4, 158, -6], spin: 0,
   },
+  // the first frets, close up: the chord's dots sit where the fingers go
+  {
+    ex: 'cleancheck', ch: 'chords', anchor: 'chordbox',
+    win: { m: [0.45, 0.16, 0.49, 0.35], d: [0.34, 0.15, 0.2, 0.6] },
+    fit: { m: 2.35, d: 3.6 }, rot: [-16, 0, 0], spin: 0,
+  },
+  {
+    ex: 'drill', ch: 'chords', anchor: 'chordbox',
+    win: { m: [0.45, 0.16, 0.49, 0.35], d: [0.34, 0.15, 0.2, 0.6] },
+    fit: { m: 2.35, d: 3.6 }, rot: [-16, 0, 0], spin: 0,
+  },
 ];
 
 // How many shots belong to the scroll (the rest are exercise cameras).

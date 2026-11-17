@@ -38,6 +38,7 @@ function saveLog(names, secs) {
 export function createTuner({ root, words, liveLink, audio, focus, getStage, director }) {
   const el = document.createElement('section');
   el.className = 'ex ex-tuner';
+  el.dataset.ex = 'tuner';
   el.innerHTML = `
     <header class="tag"><span class="tag-no">${esc(words.no)}</span><span class="tag-txt"><b class="tag-name">${esc(words.name)}</b><span class="tag-jp">${esc(words.jp)}</span></span></header>
     <button type="button" class="ex-exit" aria-label="Back to menu">✕ <span>EXIT</span></button>

@@ -26,6 +26,8 @@ import { createCursor } from './ui/cursor.js';
 import { createKeys } from './ui/keys.js';
 import { createEggs } from './ui/eggs.js';
 import { createTuner } from './exercises/tuner.js';
+import { createCleanCheck } from './exercises/cleancheck.js';
+import { createDrill } from './exercises/drill.js';
 
 document.title = content.site.pageTitle;
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
@@ -59,6 +61,15 @@ function layout() {
     st.setProperty('--wx', `${r.x}px`); st.setProperty('--wy', `${r.y}px`);
     st.setProperty('--ww', `${r.w}px`); st.setProperty('--wh', `${r.h}px`);
   });
+  // exercise screens know where their window rests too
+  SHOTS.forEach((sh, n) => {
+    if (!sh.ex) return;
+    const ex = host.querySelector(`.ex[data-ex="${sh.ex}"]`);
+    if (!ex) return;
+    const r = homeRect(n);
+    ex.style.setProperty('--wx', `${r.x}px`); ex.style.setProperty('--wy', `${r.y}px`);
+    ex.style.setProperty('--ww', `${r.w}px`); ex.style.setProperty('--wh', `${r.h}px`);
+  });
   chapters.forEach((ch) => ch.fit && ch.fit(layers[ch.id], S.vh, S.layout === 'd'));
 }
 layout();
@@ -88,6 +99,9 @@ bus.on('chapter', () => host.querySelectorAll('.ch.is-open').forEach((c) => { c.
 
 // exercises that run inside the 3D world
 createTuner({ root: host, words: content.ex.tuner, liveLink, audio, focus, getStage: () => stage, director });
+createCleanCheck({ root: host, words: content.ex.cleancheck, audio, getStage: () => stage, director });
+createDrill({ root: host, words: content.ex.drill, audio, getStage: () => stage, director });
+layout();
 director.measure();
 
 // titles are sized to fit — so re-measure whenever a web font finishes arriving
