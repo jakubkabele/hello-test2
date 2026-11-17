@@ -10,6 +10,8 @@ One immersive 3D world: you scroll along a guitar rig and each stop holds exerci
 - **Being rebuilt into the new style, one step at a time** (see `SESSIONS.md`). Until an exercise is
   rebuilt, its card links to the old plain screens at `/practice/` (the original app, untouched).
 - Emblem 琴 (koto/lyre), kana オルフェウス. Keep small text to a minimum — Kuba finds it cluttered.
+  Captions stay folded until the big title is tapped. Boot = three "cores" (耳 手 律) that deliberate, then approve.
+- **Status:** rebuild step 1 of 4 done (scroll menu, amp/pedal/stage, Tuner in-world). Next: step 2, chords in-world.
 - Live: https://hello-test2-inky.vercel.app
 - Blueprints (exercise behaviour): `docs/blueprint-v1.md`, `docs/blueprint-v2.md`
 - Session history + next step: `SESSIONS.md` — read its last section first.

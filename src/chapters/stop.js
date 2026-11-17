@@ -21,7 +21,7 @@ export const makeStop = (id, { side = false, cap = 0.2 } = {}) => ({
     ${tag(c)}
     <div class="stop-col">
       ${title(c.title)}
-      ${c.caption ? `<p class="cap" data-in>${esc(c.caption)}</p>` : ''}
+      ${c.caption ? `<p class="cap">${esc(c.caption)}</p>` : ''}
     </div>
     <ul class="cards" data-in>${c.cards.map(card).join('')}</ul>
     ${id === 'pedal' ? '<div class="log-local" data-in hidden></div>' : ''}`,

@@ -75,6 +75,17 @@ createKeys({ director, audio, focus, hud, input });
 createEggs({ hud, audio });
 chapters.forEach((ch) => ch.mount(layers[ch.id], { content, audio, focus, director }));
 
+// the small text under a big title stays folded away until you tap the title
+host.addEventListener('click', (e) => {
+  const t = e.target.closest('.title');
+  if (!t) return;
+  const open = t.closest('.ch').classList.toggle('is-open');
+  t.setAttribute('aria-expanded', open);
+  audio.unlock(); audio.blip('tick');
+});
+host.addEventListener('keydown', (e) => { if ((e.key === 'Enter') && e.target.classList.contains('title')) e.target.click(); });
+bus.on('chapter', () => host.querySelectorAll('.ch.is-open').forEach((c) => { c.classList.remove('is-open'); c.querySelector('.title').setAttribute('aria-expanded', 'false'); }));
+
 // exercises that run inside the 3D world
 createTuner({ root: host, words: content.ex.tuner, liveLink, audio, focus, getStage: () => stage, director });
 director.measure();

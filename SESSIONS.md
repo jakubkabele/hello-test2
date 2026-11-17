@@ -141,5 +141,13 @@ Built:
 - Chords / Rhythm / Find the note / Log / Sensitivity cards still open the old plain screens.
 - Still on branch `ccr-67fdb530-98eink` (preview). Not on `main`.
 
+### End-of-day additions (after Kuba's look at step 1: "overall it's great")
+- **Small text folded away**: the caption under each big title is hidden until you tap the title (a small amber `+` after the last word shows it can open; `−` when open). Closes again when you scroll to another stop. Code: click handler in `src/main.js`, `.ch.is-open .cap` in `chapters.css`.
+- **Boot restyled like a deciding supercomputer** (own design): three cores — 耳 EAR, 手 HAND, 律 TIME — flicker "審議中" (deliberating), then turn solid "承認" (approved) one by one, then all go amber with "ORPHEUS ONLINE". Hazard stripes above and below. Still ≈2.7 s, tap to skip. Markup in `index.html`, timing in `src/ui/boot.js`, styles at the end of `base.css`.
+- Known nit: the core kanji use the Japanese font, which loads a moment late — on a slow connection they may appear in the phone's own font for the first instant.
+
 ## Next step
-Kuba tests step 1 on the preview → fixes → **step 2: chord check + chord change drill in-world**.
+1. Kuba tests the preview on his phone (tuner on a real guitar, peg direction, smoothness, new boot, tap-to-open captions) → fix what he reports.
+2. **Rebuild step 2: Clean chord check + Chord change drill in-world** on the fretboard. Pattern to copy: `src/exercises/tuner.js` + an `ex:` shot in `src/config/shots.js` + `open: '<name>'` on the card in `src/content.js`; reuse the hearing engine from `public/practice/chords.js` / `timing.js`.
+3. Then step 3 (Rhythm + Find the note, body), step 4 (log on the pedal, sensitivity on the amp knobs, red full-screen "alert" as the pause screen).
+4. When Kuba says "go live": merge branch `ccr-67fdb530-98eink` into `main`.

@@ -16,6 +16,7 @@
     #boot .boot-in { width: min(78vw, 340px); }
     #boot .boot-head { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(233,231,242,.3); padding-bottom: 8px; margin-bottom: 12px; }
     #boot .boot-lines { list-style: none; margin: 0; padding: 0; min-height: 8em; }
+    #boot .cores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; height: 132px; margin-bottom: 14px; }
   </style>
 </head>
 <body>
@@ -23,6 +24,11 @@
   <div id="boot" role="status" aria-label="Starting up">
     <div class="boot-in">
       <div class="boot-head"><span>ORPHEUS</span><span class="boot-jp">琴 起動</span></div>
+      <div class="cores" aria-hidden="true">
+        <div class="core"><span class="core-no">CORE·1</span><b>耳</b><em>EAR</em><i></i></div>
+        <div class="core"><span class="core-no">CORE·2</span><b>手</b><em>HAND</em><i></i></div>
+        <div class="core"><span class="core-no">CORE·3</span><b>律</b><em>TIME</em><i></i></div>
+      </div>
       <ol class="boot-lines"></ol>
       <div class="boot-bar"><i></i></div>
       <div class="boot-go"><span>ORPHEUS ONLINE</span><b>琴</b></div>

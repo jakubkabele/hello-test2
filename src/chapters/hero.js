@@ -6,7 +6,7 @@ export default {
     ${tag(c)}
     <div class="hero-col">
       ${title(c.title, 'h1')}
-      <p class="cap" data-in>${esc(c.caption)}</p>
+      <p class="cap">${esc(c.caption)}</p>
     </div>
     <p class="hint" data-in>${esc(c.hint)}</p>
     <div class="cue" data-in><span>SCROLL</span><i></i></div>`,

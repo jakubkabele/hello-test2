@@ -15,7 +15,7 @@ export const tag = (c) => `
 
 // The huge stacked words.
 export const title = (lines, tagName = 'h2') => `
-  <${tagName} class="title" aria-label="${esc(lines.join(' '))}">
+  <${tagName} class="title" role="button" tabindex="0" aria-expanded="false" aria-label="${esc(lines.join(' '))}">
     ${lines.map((l) => `<span class="ln" aria-hidden="true"><span>${esc(l)}</span></span>`).join('')}
   </${tagName}>`;
 
