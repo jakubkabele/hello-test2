@@ -319,10 +319,14 @@ const Chords = (() => {
     const typical = levels[Math.floor(levels.length / 2)] || 1;
     const ringing = Math.max(OK, RING * typical);
     const isDoubled = (m) => expected.some((low) => m > low && (m - low) % 12 === 0);
+    const bass = Math.min(...expected);
     const strings = shape.midi.map((m, s) => {
       if (m < 0) {
         const open = OPEN_MIDI[s];
-        return { status: !expected.includes(open) && h[open] >= EXTRA ? 'extra' : 'skip', heard: open };
+        // An open string BELOW the chord's lowest note can't be an overtone of the other
+        // strings, so even a fainter one means it was struck (e.g. low E under Am).
+        const lim = open < bass ? EXTRA * 0.5 : EXTRA;
+        return { status: !expected.includes(open) && h[open] >= lim ? 'extra' : 'skip', heard: open };
       }
       const a = h[m];
       if (a >= ringing) return { status: 'ok', heard: m, doubled: isDoubled(m) };

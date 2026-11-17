@@ -354,6 +354,37 @@ html.is-picking #hud { opacity: 0; visibility: hidden; transition: opacity 0.2s,
 .ex-fn.is-listening .ex-panel .fn-notes, .ex-fn.is-listening .ex-panel .fn-strings { display: none; }
 .ex-fn.is-listening .ex-panel { bottom: calc(var(--bot) + 132px); }
 
+
+/* chord changes (EX-03) */
+.ex-ch .ch-v { display: none; }
+.ex-ch[data-view='setup'] .ch-setup, .ex-ch[data-view='run'] .ch-run, .ex-ch[data-view='summary'] .ch-sum { display: block; }
+.ch-pool { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; font: 400 56px/0.95 var(--d); }
+.ch-pool.is-many { font-size: 40px; }
+.ch-pool i { font: 400 0.3em/1 var(--m); font-style: normal; color: var(--dim); }
+.ch-last { font-size: 9.5px; letter-spacing: 0.1em; color: var(--dim); text-transform: uppercase; }
+.ch-picks { grid-template-columns: 1.3fr 1fr; }
+.ch-order { flex: 1.3; }
+.ch-order button { flex: 1; }
+.ch-song { opacity: 0.45; border-style: dashed; }
+.ch-target { font: 400 120px/0.8 var(--d); white-space: nowrap; color: var(--paper); }
+.ch-target.is-long { font-size: 60px; line-height: 0.9; white-space: normal; }
+.ch-target.is-pop { animation: chpop 0.35s cubic-bezier(0.2, 0.9, 0.2, 1); }
+@keyframes chpop { from { transform: translateY(10px); opacity: 0.2; color: var(--amber); } }
+.ch-next { font-size: 10px; letter-spacing: 0.12em; color: var(--dim); text-transform: uppercase; }
+.ch-ring { display: flex; flex-wrap: wrap; gap: 5px; }
+.ch-ring span { min-width: 44px; height: 36px; padding: 0 8px; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font: 400 17px/1 var(--d); color: var(--dim); }
+.ch-ring .is-cur { border-color: var(--paper); background: var(--paper); color: var(--void); }
+.ex-ch.is-paused .dr-paused { display: block; }
+.ex-ch.is-paused .ch-run .ex-panel { opacity: 0.25; }
+.ex-ch[data-view='summary'] .ex-panel { bottom: calc(var(--bot) + 132px); }
+/* multi-select chord chart */
+.pk-c[data-n]:not([data-n=''])::before { content: attr(data-n); position: absolute; right: 2px; top: 2px; font: 500 8px/1 var(--m); color: var(--void); }
+.pk-order { margin-top: 12px; font: 400 18px/1.2 var(--d); color: var(--amber); min-height: 1.2em; }
+.pk-multi { display: grid; grid-template-columns: 1fr 2fr; gap: 6px; margin-top: 10px; }
+.pk-multi button { height: 46px; border: 1px solid var(--line); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; }
+.pk-done { background: var(--paper); color: var(--void); border-color: var(--paper) !important; font: 400 20px/1 var(--d) !important; letter-spacing: 0.02em !important; }
+.pk-done:disabled { background: none; color: var(--dim); border-color: var(--line) !important; font: 400 10px/1 var(--m) !important; letter-spacing: 0.14em !important; }
+
 /* phones with less height (most Android phones with the address bar showing) */
 @media (max-height: 760px) {
   .ch-hero .hint { display: none; }
@@ -374,6 +405,8 @@ html.is-picking #hud { opacity: 0; visibility: hidden; transition: opacity 0.2s,
   .dr-lights b { height: 48px; min-width: 48px; }
   .dr-status { min-height: 0; font-size: 13px; }
   .fn-note { font-size: 110px; }
+  .ch-target { font-size: 92px; }
+  .ch-pool { font-size: 44px; }
   .rh-big { font-size: 90px; }
   .rh-pname { font-size: 48px; }
   .rh-slot { height: 44px; }
@@ -425,6 +458,8 @@ html.is-picking #hud { opacity: 0; visibility: hidden; transition: opacity 0.2s,
   .ex-rh .ex-panel, .ex-fn .ex-panel { left: calc(var(--wx) + var(--ww) - 440px); top: calc(var(--wy) + var(--wh) + 30px); }
   .ex-fn .fn-skip { left: 50%; right: auto; width: 420px; transform: translateX(-50%); bottom: calc(var(--bot) + 96px); }
   .rh-big { font-size: 180px; }
+  .ch-target { font-size: 170px; }
+  .ch-pool { font-size: 84px; }
   .fn-note { font-size: 200px; }
   .pk-in { left: 50%; right: auto; width: 560px; transform: translate(-50%, 24px); top: calc(var(--top) + 30px); bottom: auto; max-height: calc(100vh - var(--top) - 60px); bottom: auto; border: 1px solid var(--line); border-top-color: var(--paper); }
   .pk.is-open .pk-in { transform: translateX(-50%); }

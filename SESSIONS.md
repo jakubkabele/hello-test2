@@ -185,7 +185,33 @@ Built:
 ### Open
 - Not tested on a real phone/guitar: is the sideways strum zone a nice view, is the flat neck readable on a phone, up-strum detection.
 
+## 2026-11-17 (cont.) — Kuba's real-guitar test: rhythm-based judging doesn't work → Chord changes
+
+### Kuba's report
+- App "looks great"; Find the note "amazing — teaches theory I didn't know". Tuner / clean check fine.
+- **Everything timed against a click fails on a real phone:** change drill and Rhythm say early / late almost at random, sometimes miss a strum, sometimes hear one twice.
+- Why (explained to him): the phone's own delay drifts between runs, Bluetooth headphones add more, quiet up-strums over a ringing chord are hard to pin to a few ms. Pro apps fight this too.
+
+### Decided
+- **Merge clean + fast changes into one exercise, "Chord changes"** (his idea): pool of 2+ chords (later: from a saved song, in order), Loop or Random, no metronome. It moves on the moment it hears the target chord; string problems never stop you, they go to the summary. 1-minute rounds, score = changes/min.
+- Rhythm → try **"Keep time"** next: click for 2 bars, then silence; judge only how even your strums are and whether you drift (strums compared with each other, so phone delay cancels out). If it still feels wrong, drop rhythm.
+- Bluetooth headphones won't help (they add delay); not needed for either.
+
+### Built: EX-03 Chord changes (`src/exercises/changes.js`)
+- Setup: chosen chords big; **Chords** = chord chart in multi-select (tap in order, numbers show it, Done); **Presets** = tabs Warm-up / Open → barre / Barre → barre / Progressions (G D Em C, C G Am F …); Order Loop / Random; "From a song" placeholder (soon).
+- Run: big chord to play, "then F", the pool with the current one lit, 3D neck shows its dots; strings turn amber / red to show how the last chord rang. Clock starts when the first chord lands; 20 s silence = paused band.
+- Hearing: strum detector → ~0.35 s after the strum → "is this the chord I'm waiting for?" (best or near-best of 31 shapes, clearly better than the last chord). If an older chord is still ringing, only what's new since the strum is judged (stops a fading chord from counting — found in testing). Backup check every 0.3 s for strums the detector missed, only on what's new since the last chord landed.
+- Summary: changes/min, % clean, average change time, slowest change, top problems per chord ("Am: E string shouldn't ring ×2"), wrong chords heard. Log `chord-changes`.
+- Engine tweak (`public/practice/chords.js`, also helps the clean check): an unplayed open string **below the chord's lowest note** (low E under Am) counts as "don't play" at half the usual loudness — it can't be an overtone. No false flags on clean Em / Am / F / C / G.
+- Tests (synthetic): Am → F → C loop lands in order; wrong chord shown ("Heard G7 — waiting for C"); "Am + low E" moves on and is flagged in the summary.
+
+### Open
+- Real-guitar test of Chord changes: similar chords (C / Am, G / Em) with sloppy strums; speed of moving on.
+- The old metronome drill is hidden (card gone) but its code stays for the timing calibration until Rhythm is reworked.
+
 ## Next step
-1. Kuba tests steps 2–3 on the phone + guitar (clean check, drill, rhythm, find the note, calibration, pause) → fix what he reports.
-2. **Rebuild step 4:** (log on the pedal, sensitivity on the amp knobs, red full-screen "alert" as the pause screen — the drill's pause band is the placeholder).
-3. When Kuba says "go live": merge the redesign branch into `main`.
+1. Kuba tests **Chord changes** on the guitar → tune.
+2. **Keep time** replaces Rhythm (click 2 bars → silence → judge evenness + drift). Then remove the old drill + calibration if nothing needs them.
+3. Songs (save chords of a song → Chord changes pulls them in order).
+4. **Rebuild step 4:** (log on the pedal, sensitivity on the amp knobs, red full-screen "alert" as the pause screen — the drill's pause band is the placeholder).
+5. When Kuba says "go live": merge the redesign branch into `main`.

@@ -79,6 +79,11 @@ export const SHOTS = [
     win: { m: [0.03, 0.185, 0.94, 0.15], d: [0.22, 0.15, 0.56, 0.24] },
     fit: { m: 1.34, d: 2.6 }, rot: [0, 0, 90], spin: 0,
   },
+  {
+    ex: 'changes', ch: 'chords', anchor: 'chordbox',
+    win: { m: [0.45, 0.16, 0.49, 0.35], d: [0.34, 0.15, 0.2, 0.6] },
+    fit: { m: 2.35, d: 3.6 }, rot: [-16, 0, 0], spin: 0,
+  },
 ];
 
 // How many shots belong to the scroll (the rest are exercise cameras).

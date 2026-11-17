@@ -48,7 +48,7 @@ export const content = {
     caption: 'Every string of every chord, checked.',
     cards: [
       { code: 'EX-02', name: 'Clean chord check', line: 'Does every string ring?', open: 'cleancheck' },
-      { code: 'EX-03', name: 'Chord change drill', line: 'Clean changes per minute', open: 'drill' },
+      { code: 'EX-03', name: 'Chord changes', line: 'Play it, it moves on — how fast, how clean', open: 'changes' },
     ],
   },
 
@@ -138,6 +138,18 @@ export const content = {
       calFew1: 'Only heard', calFew2: 'Strum a full chord, a bit louder.',
       calUneven: 'Too uneven to measure — just follow the click.',
       calDone: 'Done ✓ Delay', calSaved: 'Redo it with headphones.', listeningDots: 'Listening…',
+    },
+    changes: {
+      no: 'EX-03', name: 'Chord changes', jp: '持替',
+      start: 'Start', pause: 'Pause', resume: 'Resume', again: 'Again', setup: 'Change settings',
+      chords: 'Chords', presets: 'Presets', presetsBtn: 'Pairs · progressions', order: 'Order', loop: 'Loop', random: 'Random',
+      fromSong: 'From a song', lastTime: 'Last', newOne: 'New', clean: 'clean',
+      denied: 'Microphone not available.', failed: 'Could not load the listening engine.',
+      playFirst: 'Play', go: 'Go — the minute is running', welcomeBack: 'Welcome back —', heard: 'Heard', waitingFor: 'waiting for',
+      then: 'then', randomNext: 'next: random', changesWord: 'changes',
+      paused: 'Paused', pausedText: 'Nothing heard for 20 s — the clock is stopped. Play to carry on.', endSave: 'End & save',
+      perMin: 'changes / min', partial: 'Partial round', upFrom: 'Up from', baseline: 'First round with these chords — your baseline.',
+      cleanChanges: 'changes clean', avgChange: 'Average change', slowest: 'Slowest', wrongChords: 'times another chord was heard',
     },
     rhythm: {
       no: 'EX-04', name: 'Rhythm', jp: '律動',
