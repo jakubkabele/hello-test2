@@ -283,7 +283,30 @@ Built:
 
 **Went live:** Kuba approved the preview → fast-forwarded `main` to `ccr-7376e667-ykiay9` (2026-11-20). The old app stays at `/practice/`.
 
+## 2026-11-20 (cont.) — Gemini: adding songs from your own sources and from the internet
+
+### How it works
+- `api/song.js` (Vercel function) holds the Gemini key (`GEMINI_API_KEY`, set by Kuba in Vercel) and talks to Gemini;
+  the app never sees the key. `/api/song/?status` says whether the key is there and accepted (never shows it).
+- **From my own sources:** screenshots / photos / PDF / mp3 / mp4. The phone shrinks everything first (one request
+  may be ≤ ~4.5 MB): pictures → 1600 px JPEG, sound → mono 12 kHz, ≤ 2 min, video → up to 16 still frames + its sound;
+  if it's still too big, fewer frames, then shorter sound (it says so). Gemini reads chord sheets / listens / looks.
+- **From the internet:** title + band (+ YouTube or web link). Gemini searches chord sites with Google Search, watches a
+  YouTube link itself, reads a web link. The sites it used are shown.
+- Either way: chords only (no lyrics), JSON, cleaned on the server; the result opens as a **draft in the editor**
+  (amber box: unsure chords, Gemini's note, what was cut to fit, sources) — nothing is saved until Save.
+- **Capo** field on songs (Gemini fills it if the sheet uses one); Chord changes then listens for the notes that
+  actually sound (G shape with capo 2 = A).
+
+### Tests (cloud — Google can't be reached from here, so Gemini was faked)
+- Server: 18 checks (status with/without/bad key, key never returned, files inline + JSON schema, lyric line dropped,
+  wrong type / too big refused, fenced JSON, sources, YouTube + search, url_context for other links, bad link, 429,
+  "couldn't find", retired model → next, other websites refused).
+- Browser: screenshot + 150 s audio + 40 s video → 3.6 MB request (frames 16 → 6, audio cut to 76 s, noted), review,
+  save; internet path with YouTube link → review with capo 2 → save. Capo hearing: G/C/D shapes with capo recognised.
+- Not done here: a real call to Gemini — Kuba checks `/api/song/?status` and tries a song on the phone.
+
 ## Next step
 1. Kuba tries songs (add a real one), today's session and the export on the phone → fixes.
-2. **Gemini** for adding songs (own sources + internet): Kuba makes a Google AI Studio key → Vercel env var → `/api` function.
+2. Kuba: open `/api/song/?status` on the preview, then add a real song both Gemini ways → fixes → go live.
 3. Sandbox (composer, synth, backing tracks).

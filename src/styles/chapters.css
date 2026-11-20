@@ -181,7 +181,7 @@ html.is-picking #hud { opacity: 0; visibility: hidden; transition: opacity 0.2s,
 .pk-tabs button { flex: 1; height: 40px; font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); padding: 0 4px; }
 .pk-tabs button + button { border-left: 1px solid var(--line); }
 .pk-tabs .is-on { background: var(--paper); color: var(--void); }
-.pk-pane[hidden] { display: none; }
+.pk-pane[hidden], .pk-tabs[hidden] { display: none; }
 .pk-note { font-size: 9.5px; letter-spacing: 0.04em; color: var(--dim); margin: 2px 0 8px; }
 .pk-row { width: 100%; height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 4px; border-bottom: 1px solid var(--line-soft); text-align: left; }
 .pk-row b { font: 400 21px/1 var(--d); letter-spacing: 0.01em; white-space: nowrap; }
@@ -529,6 +529,27 @@ html.is-picking #hud { opacity: 0; visibility: hidden; transition: opacity 0.2s,
 .sg-addsec { width: 100%; height: 44px; margin-top: 12px; border: 1px dashed var(--line); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; }
 .sg-delete { width: 100%; height: 44px; margin-top: 22px; color: var(--alarm); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; border: 1px solid rgba(194, 86, 75, 0.5); }
 .sg-soon { font: 800 15px/1.4 var(--s); margin: 6px 0 16px; }
+
+/* Gemini: add from sources / the internet, review */
+.gm-pick { display: flex; align-items: center; justify-content: center; height: 52px; border: 1px dashed var(--amber); color: var(--amber); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; }
+.gm-pick input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.gm-files { display: flex; flex-direction: column; margin-top: 6px; }
+.gm-f { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line-soft); font-size: 10.5px; }
+.gm-f span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gm-f i { font-style: normal; color: var(--dim); font-size: 9.5px; }
+.gm-f button { width: 32px; height: 32px; color: var(--dim); }
+.gm-err { margin-top: 10px; font: 800 13px/1.35 var(--s); color: var(--alarm); }
+.gm-err[hidden], .gm-wait[hidden] { display: none; }
+.gm-wait { margin-top: 12px; display: flex; align-items: center; gap: 10px; font-size: 10px; letter-spacing: 0.08em; color: var(--amber); text-transform: uppercase; }
+.gm-wait i { width: 14px; height: 14px; border: 2px solid var(--amber); border-right-color: transparent; border-radius: 50%; animation: gmspin 0.8s linear infinite; }
+@keyframes gmspin { to { transform: rotate(360deg); } }
+.pk-multi button[disabled] { opacity: 0.35; }
+.sg-review { margin-top: 10px; padding: 10px 12px; border: 1px solid var(--amber); background: rgba(201, 162, 90, 0.08); display: flex; flex-direction: column; gap: 5px; font-size: 9.5px; line-height: 1.45; color: var(--dim); }
+.sg-review b { font: 800 13px/1.2 var(--s); color: var(--amber); }
+.sg-review a { color: var(--paper); }
+.sg-chip.is-unsure::after { content: ''; position: absolute; right: 3px; top: 3px; width: 6px; height: 6px; border-radius: 50%; background: var(--amber); }
+.sg-capo { max-width: 200px; }
+.ch-capo { font: 500 10px/1 var(--m); letter-spacing: 0.14em; color: var(--amber); text-transform: uppercase; }
 
 /* teach a chord: fret grid */
 .tg { display: flex; gap: 12px; align-items: flex-start; }

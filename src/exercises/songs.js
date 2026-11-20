@@ -16,6 +16,7 @@ import { esc } from '../chapters/common.js';
 import { createPicker, miniDiagram } from './picker.js';
 import { loadEngine, readLog } from './ear.js';
 import { shapeFor, allShapes, MORE_GROUPS, teach, findBarre, parseName, NOTE_NAMES } from './chordbook.js';
+import * as gemini from './gemini.js';
 
 const KEY = 'practice.songs.v1';
 const SECTION_NAMES = ['Intro', 'Verse', 'Pre-chorus', 'Chorus', 'Bridge', 'Solo', 'Riff', 'Outro'];
@@ -117,14 +118,15 @@ export function createSongs({ root, words, audio, getStage, director }) {
   function chipsHtml(chords, editable = false, si = 0) {
     return chords.map((c, ci) => {
       const k = known(c);
-      return `<button type="button" class="sg-chip${k ? '' : ' is-unknown'}" ${editable ? `data-chip="${si}:${ci}"` : `data-show="${esc(c)}"`}>${esc(c)}${k ? '' : '<sup>?</sup>'}</button>`;
+      const unsure = editable && draft && draft.unsure && draft.unsure.includes(c);
+      return `<button type="button" class="sg-chip${k ? '' : ' is-unknown'}${unsure ? ' is-unsure' : ''}" ${editable ? `data-chip="${si}:${ci}"` : `data-show="${esc(c)}"`}>${esc(c)}${k ? '' : '<sup>?</sup>'}</button>`;
     }).join('');
   }
   function renderSong() {
     const x = songById(current);
     if (!x) { setView('list'); return; }
     const seq = songChords(x), st = songStats(x.id);
-    read.innerHTML = `<button type="button" class="sg-back">‹ ${esc(words.songs)}</button><b class="sg-title">${esc(x.title)}</b><span class="lg-unit">${esc(x.artist || words.own)}</span>`;
+    read.innerHTML = `<button type="button" class="sg-back">‹ ${esc(words.songs)}</button><b class="sg-title">${esc(x.title)}</b><span class="lg-unit">${esc(x.artist || words.own)}${x.capo ? ` · ${esc(words.capo)} ${x.capo}` : ''}</span>`;
     const unknown = [...new Set(seq.filter((c) => !known(c)))];
     body.innerHTML = (x.sections || []).filter((s) => s.chords.length).map((s) => `
       <div class="sg-sec"><p class="sg-secname">${esc(s.name)}</p><div class="sg-chips">${chipsHtml(s.chords)}</div></div>`).join('') ||
@@ -141,9 +143,19 @@ export function createSongs({ root, words, audio, getStage, director }) {
   function renderEdit() {
     const d = draft;
     read.innerHTML = `<button type="button" class="sg-back">‹ ${esc(words.cancel)}</button><b class="sg-title">${esc(d.title || words.newSong)}</b>`;
-    body.innerHTML = `
+    const review = d.from ? `
+      <div class="sg-review">
+        <b>${esc(words.reviewTitle)}</b>
+        <span>${esc(words.reviewText)}</span>
+        ${d.unsure && d.unsure.length ? `<span>${esc(words.unsureLine)} ${d.unsure.map(esc).join(', ')}</span>` : ''}
+        ${d.notes ? `<span>“${esc(d.notes)}”</span>` : ''}
+        ${d.prepNotes && d.prepNotes.length ? `<span>${d.prepNotes.map(esc).join(' · ')}</span>` : ''}
+        ${d.sources && d.sources.length ? `<span>${esc(words.sourcesLine)} ${d.sources.map((x) => `<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.title || 'link')}</a>`).join(', ')}</span>` : ''}
+      </div>` : '';
+    body.innerHTML = `${review}
       <label class="sg-field"><span>${esc(words.titleLabel)}</span><input type="text" class="sg-in-title" maxlength="60" value="${esc(d.title)}" placeholder="${esc(words.titlePh)}"></label>
       <label class="sg-field"><span>${esc(words.artistLabel)}</span><input type="text" class="sg-in-artist" maxlength="60" value="${esc(d.artist || '')}" placeholder="${esc(words.artistPh)}"></label>
+      <div class="sg-field"><span>${esc(words.capo)}</span><div class="step sg-capo"><button type="button" data-capo="-1" aria-label="Capo down">−</button><b>${d.capo ? d.capo : esc(words.noCapo)}</b><button type="button" data-capo="1" aria-label="Capo up">+</button></div></div>
       ${d.sections.map((s, si) => `
         <div class="sg-sec is-edit">
           <div class="sg-sechead"><button type="button" class="sg-secname-btn" data-sec="${si}">${esc(s.name)} ▾</button><i></i><button type="button" class="sg-secdel" data-secdel="${si}" aria-label="Delete section">✕</button></div>
@@ -174,6 +186,8 @@ export function createSongs({ root, words, audio, getStage, director }) {
     if (show) { shownChord = ''; showChord(show.dataset.show); if (!known(show.dataset.show)) teachFor(show.dataset.show).then(() => render()); return; }
     if (view !== 'edit') return;
     syncFields();
+    const cp = e.target.closest('[data-capo]');
+    if (cp) { draft.capo = Math.max(0, Math.min(12, (draft.capo || 0) + +cp.dataset.capo)); renderEdit(); return; }
     const add = e.target.closest('[data-add]');
     if (add) { await addChord(+add.dataset.add); return; }
     const chip = e.target.closest('[data-chip]');
@@ -199,35 +213,40 @@ export function createSongs({ root, words, audio, getStage, director }) {
     if (e.target.closest('.sg-edit')) { startEdit(x); return; }
     if (e.target.closest('.sg-hard')) {
       const hp = hardestPair(E, x);
-      if (hp) practise({ pool: hp.pair, order: 'loop', song: null });
+      if (hp) practise({ pool: hp.pair, order: 'loop', song: null, capo: x.capo || 0 });
     }
   });
   go.addEventListener('click', async () => {
     audio.unlock();
     if (view === 'list') {
+      const st = await gemini.status();
+      const g = st.key === 'found' && st.works !== false ? words.gemini : st.key === 'missing' ? words.needsKey : st.works === false ? words.keyRefused : words.offline;
       const v = await picker.list({
         title: words.add, value: '',
         tabs: [{ id: 'how', label: words.how, rows: [
           { value: 'manual', label: words.manual, sub: words.manualSub, accent: true },
-          { value: 'own', label: words.own2, sub: words.soonGemini },
-          { value: 'web', label: words.web, sub: words.soonGemini },
+          { value: 'own', label: words.own2, sub: g },
+          { value: 'web', label: words.web, sub: g },
         ] }],
       });
       if (v === 'manual') startEdit(null);
-      else if (v) { await picker.sheet(v === 'own' ? words.own2 : words.web, `<p class="sg-soon">${esc(v === 'own' ? words.ownSoon : words.webSoon)}</p><button type="button" class="pk-row" data-v="ok"><b>${esc(words.ok)}</b></button>`); }
+      else if (v === 'own') await fromOwn();
+      else if (v === 'web') await fromWeb();
       return;
     }
     if (view === 'song') {
       const x = songById(current);
       if (!x) return;
       if (songChords(x).length < 2) { startEdit(x); return; }
-      practise({ pool: songChords(x), order: 'loop', song: { id: x.id, title: x.title } });
+      practise({ pool: songChords(x), order: 'loop', song: { id: x.id, title: x.title }, capo: x.capo || 0 });
       return;
     }
     // save
     syncFields();
     if (!draft.title.trim()) { el.querySelector('.sg-in-title').focus(); return; }
     draft.sections = draft.sections.filter((s) => s.chords.length || draft.sections.length === 1);
+    if (draft.from) draft.source = draft.from === 'web' ? 'gemini-web' : 'gemini-own';
+    ['from', 'unsure', 'notes', 'sources', 'prepNotes'].forEach((k) => delete draft[k]);
     const list = loadSongs();
     if (draft.id) { const i = list.findIndex((x) => x.id === draft.id); if (i >= 0) list[i] = { ...list[i], ...draft, updated: new Date().toISOString() }; }
     else { draft.id = newId(); draft.created = new Date().toISOString(); list.unshift(draft); }
@@ -236,6 +255,107 @@ export function createSongs({ root, words, audio, getStage, director }) {
     audio.blip('on'); bus.emit('flash', 0.3);
     setView('song');
   });
+
+  // ── Gemini: from my own sources / from the internet ──
+  const ERR = () => ({ nokey: words.errNoKey, key: words.errKey, limit: words.errLimit, unreadable: words.errUnreadable, busy: words.errBusy, unavailable: words.errOffline, bad: words.errBad, failed: words.errFailed });
+  // a waiting line with seconds counting, inside the open sheet
+  let waitText = '';
+  function waiting(text) {
+    const t0 = performance.now();
+    waitText = text;
+    const box = picker.body.querySelector('.gm-wait');
+    if (!box) return () => {};
+    box.hidden = false;
+    const tick = () => { box.querySelector('span').textContent = `${waitText} · ${Math.round((performance.now() - t0) / 1000)} s`; };
+    tick();
+    const iv = setInterval(tick, 500);
+    picker.body.querySelectorAll('button, input').forEach((b) => { b.disabled = true; });
+    return () => { clearInterval(iv); box.hidden = true; picker.body.querySelectorAll('button, input').forEach((b) => { b.disabled = false; }); };
+  }
+  const showErr = (msg) => { const e = picker.body.querySelector('.gm-err'); if (e) { e.textContent = msg; e.hidden = !msg; } };
+  const errText = (res) => `${ERR()[res.error] || words.errFailed}${res.detail ? ` (${res.detail})` : ''}`;
+
+  async function fromOwn() {
+    let files = [], note = '';
+    const draw = () => `
+      <p class="pk-note">${esc(words.ownHow)}</p>
+      <label class="gm-pick"><input type="file" multiple accept="image/*,application/pdf,audio/*,video/*" class="gm-file"><span>+ ${esc(words.pickFiles)}</span></label>
+      <div class="gm-files">${files.map((f, i) => `<div class="gm-f"><span>${esc(f.name)}</span><i>${(f.size / 1048576).toFixed(1)} MB</i><button type="button" data-rm="${i}" aria-label="Remove">✕</button></div>`).join('')}</div>
+      <label class="sg-field"><span>${esc(words.noteLabel)}</span><input type="text" class="gm-note" maxlength="200" placeholder="${esc(words.notePh)}"></label>
+      <p class="gm-err" hidden></p>
+      <p class="gm-wait" hidden><i></i><span></span></p>
+      <div class="pk-multi"><button type="button" class="gm-cancel">${esc(words.cancel)}</button><button type="button" class="gm-go" ${files.length ? '' : 'disabled'}>${esc(words.readIt)}</button></div>`;
+    const done = picker.sheet(words.own2, draw());
+    const redraw = () => { note = picker.body.querySelector('.gm-note')?.value || note; picker.body.innerHTML = draw(); picker.body.querySelector('.gm-note').value = note; };
+    const onChange = (e) => { if (e.target.classList.contains('gm-file')) { files = files.concat([...e.target.files]).slice(0, 12); redraw(); } };
+    const onClick = async (e) => {
+      const rm = e.target.closest('[data-rm]');
+      if (rm) { files.splice(+rm.dataset.rm, 1); redraw(); return; }
+      if (e.target.closest('.gm-cancel')) { picker.done(null); return; }
+      if (!e.target.closest('.gm-go') || !files.length) return;
+      note = picker.body.querySelector('.gm-note').value;
+      showErr('');
+      let prep;
+      let stop = waiting(words.preparing);
+      try {
+        prep = await gemini.prepare(files, (t) => { waitText = t; });
+      } catch (err) { stop(); showErr(String(err.message || err)); return; }
+      stop();
+      stop = waiting(words.reading);
+      const res = await gemini.ask({ mode: 'own', parts: prep.parts, note }).catch(() => ({ error: 'failed' }));
+      stop();
+      if (res.error) { showErr(errText(res)); return; }
+      picker.done({ ...res, prepNotes: prep.notes });
+    };
+    picker.body.addEventListener('change', onChange);
+    picker.body.addEventListener('click', onClick);
+    const res = await done;
+    picker.body.removeEventListener('change', onChange);
+    picker.body.removeEventListener('click', onClick);
+    if (res && res.song) review(res, 'own');
+  }
+
+  async function fromWeb() {
+    const done = picker.sheet(words.web, `
+      <p class="pk-note">${esc(words.webHow)}</p>
+      <label class="sg-field"><span>${esc(words.titleLabel)}</span><input type="text" class="gm-title" maxlength="100" placeholder="${esc(words.titlePh)}"></label>
+      <label class="sg-field"><span>${esc(words.artistLabel)}</span><input type="text" class="gm-artist" maxlength="100" placeholder="${esc(words.bandPh)}"></label>
+      <label class="sg-field"><span>${esc(words.linkLabel)}</span><input type="url" class="gm-link" maxlength="300" placeholder="${esc(words.linkPh)}"></label>
+      <p class="gm-err" hidden></p>
+      <p class="gm-wait" hidden><i></i><span></span></p>
+      <div class="pk-multi"><button type="button" class="gm-cancel">${esc(words.cancel)}</button><button type="button" class="gm-go">${esc(words.findIt)}</button></div>`);
+    const onClick = async (e) => {
+      if (e.target.closest('.gm-cancel')) { picker.done(null); return; }
+      if (!e.target.closest('.gm-go')) return;
+      const q = (c) => picker.body.querySelector(c).value.trim();
+      const title = q('.gm-title'), artist = q('.gm-artist'), link = q('.gm-link');
+      if (!title) { picker.body.querySelector('.gm-title').focus(); return; }
+      if (link && !/^https?:\/\//i.test(link)) { showErr(words.errLink); return; }
+      showErr('');
+      const stop = waiting(words.searching);
+      const res = await gemini.ask({ mode: 'web', title, artist, link }).catch(() => ({ error: 'failed' }));
+      stop();
+      if (res.error) { showErr(errText(res)); return; }
+      picker.done(res);
+    };
+    picker.body.addEventListener('click', onClick);
+    const res = await done;
+    picker.body.removeEventListener('click', onClick);
+    if (res && res.song) review(res, 'web');
+  }
+
+  // Gemini's answer → a draft in the normal editor; nothing is saved until you press Save
+  function review(res, from) {
+    const s = res.song;
+    current = null;
+    draft = {
+      id: null, title: s.title, artist: s.artist, capo: s.capo || 0,
+      sections: s.sections.map((x) => ({ name: x.name, chords: x.chords.slice() })),
+      from, unsure: s.unsure || [], notes: s.notes || '', sources: res.sources || [], prepNotes: res.prepNotes || [],
+    };
+    audio.blip('on'); bus.emit('flash', 0.35);
+    setView('edit');
+  }
 
   // open Chord changes with these chords
   function practise(cfg) {

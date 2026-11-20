@@ -16,9 +16,9 @@ One immersive 3D world: you scroll along a guitar rig and each stop holds exerci
   links to the old screens any more. **Live on `main` since 2026-11-20.** New features are built in this style.
 - **Features (2026-11-20):** Songs (manual entry; sections; any chord name; teach unknown chords on a fret grid),
   bigger chord memory (+88 shapes), barre line on the neck, Today's session (20/45/60 min, from the log), log export (Markdown).
-- **Later:** add a song "from my own sources" (screenshots/PDF/mp3/mp4) and "from the internet" (song + band + link) —
-  planned with **Gemini** (takes video, audio, YouTube links); needs a Google AI Studio key in Vercel + a small `/api` function.
-  Sandbox on the stage (composer, synth, backing tracks).
+- **Gemini song import (2026-11-20):** "From my own sources" (screenshots/PDF/mp3/mp4) and "From the internet" (song + band
+  + optional YouTube/web link) — read by Google Gemini through `api/song.js`; the result opens as a draft in the song editor.
+- **Later:** Sandbox on the stage (composer, synth, backing tracks).
 - Live: https://hello-test2-inky.vercel.app
 - Blueprints (exercise behaviour): `docs/blueprint-v1.md`, `docs/blueprint-v2.md`
 - Session history + next step: `SESSIONS.md` — read its last section first.
@@ -67,6 +67,8 @@ One immersive 3D world: you scroll along a guitar rig and each stop holds exerci
 | `src/exercises/halt.js` | The red full-screen **alert** = the pause screen of every listening exercise: `halt.show(owner, { title, text, after, buttons })`, `halt.hide(owner)`, `isShown(owner)`. Hides the HUD; closes on `ex:leave`. Mic keeps listening; the exercise closes it when playing resumes |
 | `src/exercises/chordbook.js` | Every chord the site knows: CORE (engine's 31, the only ones in blind recognition) + MORE (88 extra: power, 6, add9, 9, dim, aug, m7♭5, slash, more barre) + TAUGHT (yours, `practice.chords.taught`). `shapeFor(E, name)` (flats/sharps/any spelling), `rank(E, h, extraShapes)`, `findBarre(frets)`, `teach(name, frets)` |
 | `src/exercises/songs.js` | SYS-02 on the amp: song list (`practice.songs.v1`, seeded with Kuba's goal songs, names only), song page (sections + chord chips, unknown = dashed "?"), editor (title, artist, sections, chords from the chart / More / typed), fret-grid **teach** sheet. "Play the changes" → Chord changes with the song in order; "Hardest change" = slowest measured pair or a guess. Add-song options 2–3 show "soon · Gemini" |
+| `api/song.js` | **The only server code.** Vercel function between the app and Gemini; the key is the env var `GEMINI_API_KEY` (never in the app). `GET /api/song/?status` → key found/missing + whether Google accepts it. `POST` `{mode:'own', parts:[{mime,data}], note}` or `{mode:'web', title, artist, link}` → cleaned `{song, sources}` or `{error}`. Chords only, never lyrics; checks file types/sizes (≤ 4.3 MB), only our own site may call it; model `GEMINI_MODEL` or `gemini-flash-latest` (falls back if retired). maxDuration 60 s (`vercel.json`) |
+| `src/exercises/gemini.js` | Phone side: `status()`, `prepare(files)` (images → 1600 px JPEG; PDF ≤ 3 MB; audio → mono 12 kHz WAV ≤ 2 min; video → ≤ 16 still frames + its sound; fits one request by dropping frames, then shortening sound), `ask(payload)` |
 | `src/exercises/session.js` | SET-00 Today's session (hero card, camera on the stage podium): length 20/45/60 → `buildPlan()` from the log (weakest chord, slowest pair, next level at 30/min, keep-time +5 after 90 %, least-played song). Steps open the exercise set up (`changes:load`, `cleancheck:load`, `keeptime:load` + `director.swap`), count results via the `logged` event, come back on `ex:closed`. Saved per day in `practice.session.v1`. Done → copy today for a coach |
 | `src/exercises/picker.js` | In-world picker (never the browser's own `<select>`): a bottom sheet. `chords({ title, value, library, auto })` = chord chart (rows = root C…B, columns = maj · m · 7 · m7 · maj7 · sus2 · sus4, barre underlined, current chord's diagram at the bottom); `list({ title, value, tabs })` = tabs + slim one-line rows. Resolve with the value or null; hides the HUD while open |
 | `src/exercises/ear.js` | Shared by exercises: **loads the practice app's own engine files** (`/practice/audio.js`, `chords.js`, `timing.js`, `pause.js` → `Sound`, `Chords`, `Timing`, `Pause`) — no copies; mic on the site's audio clock (`openMic`), metronome `playClick`, sensitivity numbers (`profile()`, mirror of `settings.js` chord / drill / findNote / rhythm blocks — keep in step), `addLog` |
@@ -86,6 +88,7 @@ One immersive 3D world: you scroll along a guitar rig and each stop holds exerci
   set `el.dataset.ex = '<name>'` so it gets `--wx/--wy/--ww/--wh` of its window. Layout: `.ex-read` (big readout beside the window) + `.ex-panel` (controls above `.ex-go`).
 - Events: `logged` (every new log entry, from `ear.addLog` and the tuner), `changes:load` / `cleancheck:load` / `keeptime:load` (hand settings to an exercise),
   `director.swap(name)` = leave one exercise and open another.
+- Capo: a song's `capo` moves its shapes up (`chordbook.withCapo`) so Chord changes listens for the sounding notes; the neck shows the shifted dots.
 - Chords: always look shapes up with `chordbook.shapeFor` (never `Chords.LIBRARY.find`), so extra and taught chords work; a chord with no shape is "not checked" (any strum moves on in Chord changes).
 - Pauses: 20 s without playing → `halt.show('<exercise>', …)` (Resume + Stop / End & save); playing again → `halt.hide('<exercise>')`.
 - Timing against a metronome is unreliable on phones (delay drifts 50–150 ms, Bluetooth adds 150–300 ms; Kuba's real test: "always early or late").
@@ -99,7 +102,7 @@ One immersive 3D world: you scroll along a guitar rig and each stop holds exerci
 ### Tech
 - Static files in `public/practice/` — no framework, **no build step** (Vite copies the folder as-is).
   Plain HTML/CSS/JS, scripts loaded in order in `public/practice/index.html`.
-- Data stays on the device (localStorage). No accounts, no server. Same origin as the site, so the
+- Data stays on the device (except what you send to Gemini when adding a song that way) (localStorage). No accounts, no server. Same origin as the site, so the
   site's log chapter can show a "LOCAL DATA" readout from `practice.log.v1`.
 - Look: dark, minimal, near-black `#0E0E0E`, off-white text, soft green accent (= good / in tune),
   muted amber (slightly off) and soft red (wrong). English. Phone portrait, one-handed.

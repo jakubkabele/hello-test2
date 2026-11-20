@@ -145,7 +145,7 @@ export function createPicker(host) {
   function list({ title, value, tabs }) {
     const start = (tabs.find((t) => t.rows.some((r) => r.value === value)) || tabs[0]).id;
     const p = show(title, `
-      <div class="pk-tabs" role="tablist">${tabs.map((t) => `<button type="button" role="tab" data-tab="${esc(t.id)}">${esc(t.label)}</button>`).join('')}</div>
+      <div class="pk-tabs" role="tablist"${tabs.length < 2 ? ' hidden' : ''}>${tabs.map((t) => `<button type="button" role="tab" data-tab="${esc(t.id)}">${esc(t.label)}</button>`).join('')}</div>
       ${tabs.map((t) => `
         <div class="pk-pane" data-pane="${esc(t.id)}">
           ${t.note ? `<p class="pk-note">${esc(t.note)}</p>` : ''}

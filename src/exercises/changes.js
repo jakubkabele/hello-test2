@@ -18,7 +18,7 @@ import { bus } from '../core/state.js';
 import { esc } from '../chapters/common.js';
 import { createPicker } from './picker.js';
 import * as halt from './halt.js';
-import { shapeFor, rank, allShapes, MORE_GROUPS } from './chordbook.js';
+import { shapeFor, rank, allShapes, MORE_GROUPS, withCapo } from './chordbook.js';
 import { loadSongs, songChords } from './songs.js';
 import { loadEngine, openMic, profile, addLog, readLog, loadPrefs, savePrefs, neckFrets, stringName } from './ear.js';
 
@@ -87,7 +87,16 @@ export function createChanges({ root, words, audio, getStage, director }) {
 
   let E = null, open = false, view = 'setup';
   const cfg = loadPrefs(PREFS, { pool: ['Am', 'F'], order: 'loop' });
-  const shapeOf = (n) => (E ? shapeFor(E, n) : null);     // core, extra or taught chords; null = unknown (not checked)
+  // core, extra or taught chords (moved up for a song's capo); null = unknown (not checked)
+  const capoCache = new Map();
+  const shapeOf = (n) => {
+    if (!E) return null;
+    const sh = shapeFor(E, n);
+    if (!sh || !cfg.capo) return sh;
+    const k = `${n}@${cfg.capo}`;
+    if (!capoCache.has(k)) capoCache.set(k, withCapo(sh, cfg.capo));
+    return capoCache.get(k);
+  };
   // the same chords are the same set, in any order: Em ↔ Am = Am ↔ Em (old results keyed 'loop:A|B' still match)
   const setKey = (names) => names.slice().sort().join('|');
   const poolKey = () => (cfg.song ? `song:${cfg.song.id}` : setKey(cfg.pool));
@@ -108,7 +117,7 @@ export function createChanges({ root, words, audio, getStage, director }) {
       title: words.chords, value: cfg.song ? [] : cfg.pool, library: E.Chords.LIBRARY, multi: true,
       more: [...MORE_GROUPS.map(([label, f]) => ({ label, shapes: all.more.filter(f) })), { label: words.taught, shapes: all.taught }],
     });
-    if (v) { cfg.pool = v; cfg.song = null; savePrefs(PREFS, cfg); renderSetup(); }
+    if (v) { cfg.pool = v; cfg.song = null; cfg.capo = 0; savePrefs(PREFS, cfg); renderSetup(); }
   });
   $('.ch-presets').addEventListener('click', async () => {
     const match = PRESETS.flatMap(([, , sets]) => sets).find((p) => setKey(p) === poolKey());
@@ -123,7 +132,7 @@ export function createChanges({ root, words, audio, getStage, director }) {
         }),
       })),
     });
-    if (v) { cfg.pool = v.split('|'); cfg.song = null; cfg.order = cfg.pool.length > 2 ? cfg.order : 'loop'; savePrefs(PREFS, cfg); renderSetup(); }
+    if (v) { cfg.pool = v.split('|'); cfg.song = null; cfg.capo = 0; cfg.order = cfg.pool.length > 2 ? cfg.order : 'loop'; savePrefs(PREFS, cfg); renderSetup(); }
   });
   // a saved song: its chords, in order (Loop)
   $('.ch-song').addEventListener('click', async () => {
@@ -134,11 +143,11 @@ export function createChanges({ root, words, audio, getStage, director }) {
         rows: songs.map((x) => ({ value: x.id, label: x.title, sub: `${songChords(x).length} ${words.chordsWord}` })) }],
     });
     const song = v && songs.find((x) => x.id === v);
-    if (song) loadPool({ pool: songChords(song), order: 'loop', song: { id: song.id, title: song.title } });
+    if (song) loadPool({ pool: songChords(song), order: 'loop', song: { id: song.id, title: song.title }, capo: song.capo || 0 });
   });
   // another screen (Songs, Today's session) hands over chords to practise
-  function loadPool({ pool, order = 'loop', song = null }) {
-    cfg.pool = pool.slice(); cfg.order = order; cfg.song = song;
+  function loadPool({ pool, order = 'loop', song = null, capo = 0 }) {
+    cfg.pool = pool.slice(); cfg.order = order; cfg.song = song; cfg.capo = capo || 0;
     savePrefs(PREFS, cfg);
     if (view !== 'run') { setView('setup'); renderSetup(); }
   }
@@ -150,7 +159,7 @@ export function createChanges({ root, words, audio, getStage, director }) {
     if (cfg.pool.length < 2) { cfg.pool = ['Am', 'F']; cfg.song = null; }
     if (cfg.song) {
       // a song: its name big, the chords small (they can be many, with repeats)
-      $('.ch-pool').innerHTML = `<span class="ch-songname">♪ ${esc(cfg.song.title)}</span><small class="ch-seq">${cfg.pool.map((n) => `<span class="${E && !shapeOf(n) ? 'is-unknown' : ''}">${esc(n)}</span>`).join(' ')}</small>`;
+      $('.ch-pool').innerHTML = `<span class="ch-songname">♪ ${esc(cfg.song.title)}</span>${cfg.capo ? `<small class="ch-capo">Capo ${cfg.capo}</small>` : ''}<small class="ch-seq">${cfg.pool.map((n) => `<span class="${E && !shapeOf(n) ? 'is-unknown' : ''}">${esc(n)}</span>`).join(' ')}</small>`;
       $('.ch-pool').classList.add('is-song');
     } else {
       $('.ch-pool').classList.remove('is-song');

@@ -104,7 +104,7 @@ export function buildPlan(E, minutes) {
   const add = (kind, title, why, min, rounds = 1, cfg = null) => S.push({ kind, title, why, min, rounds, cfg, done: 0, results: [], skipped: false });
   const changes = (p, why, min, rounds) => add('changes', `Chord changes · ${p.pair.join(' ↔ ')}`, why || p.why, min, rounds, { pool: p.pair, order: 'loop', song: null });
   const songStep = (min, rounds) => {
-    if (song) add('changes', `Song · ${song.title}`, 'the song you played least lately', min, rounds, { pool: songChords(song), order: 'loop', song: { id: song.id, title: song.title } });
+    if (song) add('changes', `Song · ${song.title}`, 'the song you played least lately', min, rounds, { pool: songChords(song), order: 'loop', song: { id: song.id, title: song.title }, capo: song.capo || 0 });
     else add('changes', 'Progression · G D Em C', 'add songs (on the amp) to practise them here', min, rounds, { pool: ['G', 'D', 'Em', 'C'], order: 'loop', song: null });
   };
   add('tuner', 'Tune up', 'every session starts in tune', minutes >= 45 ? 3 : 2);

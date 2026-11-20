@@ -146,6 +146,14 @@ export function rank(E, h, extra = []) {
   return list.map((shape) => ({ shape, score: E.Chords.fit(h, shape) })).sort((a, b) => b.score - a.score);
 }
 
+// A capo on fret n: every played string sounds n frets higher, so the same shape gives other notes.
+// The shape's name stays (you still play "G"), but its frets and notes move up — that's what gets heard.
+export function withCapo(shape, capo) {
+  if (!shape || !capo) return shape;
+  const frets = shape.frets.map((f) => (f < 0 ? -1 : f + capo));
+  return { ...makeShape(shape.name, frets), name: shape.name, capo, taught: shape.taught, more: shape.more };
+}
+
 // what the 3D neck draws: frets ('x' = don't play) + the barre, if any
 export function neck(shape) {
   if (!shape) return null;
