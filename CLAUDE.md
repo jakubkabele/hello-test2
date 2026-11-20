@@ -13,7 +13,7 @@ One immersive 3D world: you scroll along a guitar rig and each stop holds exerci
   Captions stay folded until the big title is tapped. Boot = three "cores" (耳 手 律) that deliberate, then approve.
 - **Status:** redesign done (rebuild steps 1–4). Everything opens in-world: Tuner, Clean check, Chord changes, Keep time,
   Find the note, Sensitivity (amp knobs), Practice log (pedal); every listening pause = the red full-screen alert. No card
-  links to the old screens any more. Not on `main` yet — Kuba decides when it goes live. New features are built in this style.
+  links to the old screens any more. **Live on `main` since 2026-11-20.** New features are built in this style.
 - **Features (2026-11-20):** Songs (manual entry; sections; any chord name; teach unknown chords on a fret grid),
   bigger chord memory (+88 shapes), barre line on the neck, Today's session (20/45/60 min, from the log), log export (Markdown).
 - **Later:** add a song "from my own sources" (screenshots/PDF/mp3/mp4) and "from the internet" (song + band + link) —
@@ -135,7 +135,7 @@ One immersive 3D world: you scroll along a guitar rig and each stop holds exerci
   Vercel runs `npm run build` and serves `dist/` (see `vercel.json`); other branches get preview links.
 - Work branch `claude/hello-test2-repo-9g3mvq`; push to both it and `main`.
 - The site overhaul: step 1 on branch `ccr-67fdb530-98eink`, steps 2–3 + Chord changes + Keep time on `ccr-f69829fe-b41sza`,
-  step 4 (finished redesign) on `ccr-7376e667-ykiay9` (contains all earlier). Preview only — it goes to `main` when Kuba says so.
+  step 4 + features on `ccr-7376e667-ykiay9` (contains all earlier) — merged to `main` (live) on 2026-11-20.
 
 ## Testing (no real guitar in the cloud)
 - Practice app: synthetic guitar audio (Karplus-Strong plucks/strums, optional phone-mic high-pass) generated with Python/numpy.

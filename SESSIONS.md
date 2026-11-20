@@ -281,7 +281,9 @@ Built:
 - Real guitar: new chords through the phone mic; taught chords; Chord changes with a song that has unchecked chords.
 - Session time estimates (≈4 min per 1-minute round incl. rest) — adjust after Kuba's first real sessions.
 
+**Went live:** Kuba approved the preview → fast-forwarded `main` to `ccr-7376e667-ykiay9` (2026-11-20). The old app stays at `/practice/`.
+
 ## Next step
 1. Kuba tries songs (add a real one), today's session and the export on the phone → fixes.
 2. **Gemini** for adding songs (own sources + internet): Kuba makes a Google AI Studio key → Vercel env var → `/api` function.
-3. Sandbox (composer, synth, backing tracks). 4. Go live when Kuba says so.
+3. Sandbox (composer, synth, backing tracks).
