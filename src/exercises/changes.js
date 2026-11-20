@@ -17,6 +17,7 @@
 import { bus } from '../core/state.js';
 import { esc } from '../chapters/common.js';
 import { createPicker } from './picker.js';
+import * as halt from './halt.js';
 import { loadEngine, openMic, profile, addLog, readLog, loadPrefs, savePrefs, neckFrets, stringName } from './ear.js';
 
 const PREFS = 'practice.changes.settings';
@@ -62,15 +63,6 @@ export function createChanges({ root, words, audio, getStage, director }) {
         <div class="ch-ring" aria-hidden="true"></div>
         <p class="dr-status ch-status"></p>
         <div class="dr-history ch-hist" aria-hidden="true"></div>
-      </div>
-      <div class="dr-paused">
-        <i class="alert-stripes"></i>
-        <div class="dr-p-in">
-          <b class="dr-p-big">${esc(words.paused)}</b>
-          <p class="dr-p-text">${esc(words.pausedText)}</p>
-          <div class="dr-p-btns"><button type="button" class="ch-end">${esc(words.endSave)}</button></div>
-        </div>
-        <i class="alert-stripes"></i>
       </div>
     </div>
 
@@ -155,10 +147,9 @@ export function createChanges({ root, words, audio, getStage, director }) {
   go.addEventListener('click', () => {
     if (!E) return;
     if (view === 'setup' || view === 'summary') start();
-    else if (view === 'run') { if (paused) resume(); else pause(); }
+    else if (view === 'run') { if (paused) resume(); else pause(0, words.pausedByYou); }
   });
   alt.addEventListener('click', () => { setView('setup'); renderSetup(); });
-  $('.ch-end').addEventListener('click', () => finish(true));
   $('.ex-exit').addEventListener('click', () => director.exit());
 
   function nextName(after) {
@@ -187,18 +178,25 @@ export function createChanges({ root, words, audio, getStage, director }) {
   function resume() {
     paused = false;
     el.classList.remove('is-paused');
+    halt.hide('changes');
     lastTick = lastSoundAt = ctx.currentTime;
     strums.reset(); jobs = [];
     setView('run');
     setStatus(`${words.welcomeBack} ${target}`, '');
     loop();
   }
-  function pause() {
+  function pause(after = 20, text = words.pausedText) {
     paused = true;
     cancelAnimationFrame(raf);
     el.classList.add('is-paused');
-    $('.ch-end').hidden = changes.length < 1;
     go.textContent = words.resume;
+    halt.show('changes', {
+      title: words.paused, text, after,
+      buttons: [
+        { label: words.resume, primary: true, onClick: resume },
+        changes.length ? { label: words.endSave, onClick: () => finish(true) } : { label: words.stop, onClick: () => finish(true) },
+      ],
+    });
     raf = requestAnimationFrame(waitLoop);
   }
   // paused: any playing that keeps ringing carries on
@@ -317,6 +315,7 @@ export function createChanges({ root, words, audio, getStage, director }) {
     cancelAnimationFrame(raf);
     if (mic) { mic.close(); mic = null; audio.duck(false); }
     el.classList.remove('is-paused');
+    halt.hide('changes');
     const g = g3(); if (g) for (let i = 0; i < 6; i++) g.setTint(i, null);
     if (!changes.length) { setView('setup'); renderSetup(); return; }
     const mins = Math.max(activeSec, 1) / 60;
@@ -403,7 +402,7 @@ export function createChanges({ root, words, audio, getStage, director }) {
     const g = g3(); if (g) for (let i = 0; i < 6; i++) g.setTint(i, null);
     bus.emit('chord', [0, 2, 2, 0, 0, 0]);
   });
-  document.addEventListener('visibilitychange', () => { if (document.hidden && running) pause(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && running && !paused) pause(Math.max(0, Math.round(ctx.currentTime - lastSoundAt)), words.pausedAway); });
   window.addEventListener('pagehide', () => { if (running) finish(true); });
   return { el };
 }

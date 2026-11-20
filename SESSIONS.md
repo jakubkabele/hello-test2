@@ -216,9 +216,35 @@ Built:
 - Tests (synthetic): steady with ±10 ms jitter, a double hit and a skipped beat → 100 %, ±5 ms, 70 → 70, "1 beat with no strum"; speeding up ~8 % → "71 → 77 BPM, you sped up".
 - Note: the % only measures evenness; drifting shows as its own line. If Kuba wants drift to lower the score, change it in `finish()`.
 
+## 2026-11-20 — ORPHEUS rebuild step 4: the redesign is finished
+
+### Kuba
+- Chord changes works well on the guitar. Keep time stays as it is for now (drifting doesn't lower the %).
+- Finish the redesign so new features are built straight in the new style; go-live decided afterwards.
+
+### What we built
+- **Red full-screen alert = the pause screen** (`src/exercises/halt.js`), shared by Chord changes, Clean check and Find the note.
+  After 20 s of silence the whole screen washes red: moving hazard stripes top and bottom, a huge PAUSED, how long it's been
+  (T+00:22), "Mic still listening — play to carry on", buttons **Resume** and **Stop** (Chord changes: **End & save** once a change counted).
+  Playing again closes it on its own. Pausing by hand / leaving the screen shows it with its own line. The striped band is gone.
+- **SYS-01 Sensitivity on the amp** (`sensitivity.js`): camera glides to the amp's row of knobs; five knob buttons = levels 1–5
+  (name, one-line description, who it's for). The 3D amp knobs turn: every knob up to your level is turned up. They show the saved
+  level on the scroll stop too. Same saved setting as before (old screens and every exercise read it).
+- **REC-01 Practice log on the pedal** (`log.js`): camera on the recorder pedal, tape reels spin faster. Big "minutes active",
+  rounds / days / days in a row, tabs **Day by day** (like the old Log) and **Progress** (each chord set, find-the-note mode and
+  keep-time tempo: last score, best, a small graph of the last 12 rounds, "from 14/min ↗").
+- No card links to the old `/practice/` screens any more. Stage: "Fast changes" card removed (it became Chord changes), "Log export" added as coming soon.
+
+### Tests (cloud, software WebGL)
+- Silent fake mic: Chord changes, Clean check, Find the note → alert after 20 s; Resume closes it; silent again → back after 20 s; Stop / End closes it. No console errors.
+- Sensitivity 3 → 5 → 3 saved to `practice.settings.v1`; 3D knobs follow. Log with a seeded week: day list and progress lines right.
+- Screens at 390×844, 360×680, 1440×900.
+
+### Open
+- Not tested on the real phone: red alert feel, amp close-up readability, log scrolling with a thumb.
+- Barre chords still show as single dots on the neck.
+
 ## Next step
-1. Kuba tests **Chord changes** on the guitar → tune (similar chords, speed of moving on).
-2. Kuba tests **Keep time** on the guitar.
-3. Songs (save chords of a song → Chord changes pulls them in order).
-4. **Rebuild step 4:** (log on the pedal, sensitivity on the amp knobs, red full-screen "alert" as the pause screen — the drill's pause band is the placeholder).
-5. When Kuba says "go live": merge the redesign branch into `main`.
+1. Kuba looks at the finished redesign on the preview → decide **go live** (merge into `main`).
+2. Then features, built in the new style: **Songs** (save a song's chords → Chord changes runs them in order),
+   **Today's session** + **Markdown export** (the log already has the numbers per pair).

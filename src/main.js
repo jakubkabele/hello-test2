@@ -30,6 +30,10 @@ import { createCleanCheck } from './exercises/cleancheck.js';
 import { createKeepTime } from './exercises/keeptime.js';
 import { createChanges } from './exercises/changes.js';
 import { createFindNote } from './exercises/findnote.js';
+import { createSensitivity } from './exercises/sensitivity.js';
+import { createLog } from './exercises/log.js';
+import * as halt from './exercises/halt.js';
+import { level as sensLevel } from './exercises/ear.js';
 
 document.title = content.site.pageTitle;
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
@@ -105,6 +109,9 @@ createCleanCheck({ root: host, words: content.ex.cleancheck, audio, getStage: ()
 createChanges({ root: host, words: content.ex.changes, audio, getStage: () => stage, director });
 createKeepTime({ root: host, words: content.ex.keeptime, audio, getStage: () => stage, director });
 createFindNote({ root: host, words: content.ex.findnote, audio, getStage: () => stage, director });
+createSensitivity({ root: host, words: content.ex.sensitivity, audio, getStage: () => stage, director });
+createLog({ root: host, words: content.ex.log, getStage: () => stage, director });
+halt.setWords(content.ex.halt);
 layout();
 director.measure();
 
@@ -203,6 +210,7 @@ function startStage() {
     .then((st) => {
       stage = st;
       if (input.chord) stage.guitar.setChord(input.chord);
+      stage.guitar.setAmpLevel(sensLevel());   // the amp's knobs always show the saved sensitivity
       document.documentElement.classList.add('has-gl');
       if (import.meta.env.DEV || new URLSearchParams(location.search).has('debug')) window.__site = { S, stage, director, focus, audio, input, bus, layout };
     })

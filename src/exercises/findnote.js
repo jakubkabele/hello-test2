@@ -11,6 +11,7 @@
 
 import { bus } from '../core/state.js';
 import { esc } from '../chapters/common.js';
+import * as halt from './halt.js';
 import { loadEngine, openMic, profile, addLog, readLog, loadPrefs, savePrefs } from './ear.js';
 
 const PREFS = 'practice.findnote.settings';       // shared with the old screen
@@ -206,6 +207,7 @@ export function createFindNote({ root, words, audio, getStage, director }) {
   // ── drawing ──
   const g3 = () => getStage()?.guitar;
   function render() {
+    if (!(running && paused)) halt.hide('findnote');
     renderControls();
     paint3D();
     el.classList.remove('is-blank');
@@ -217,7 +219,19 @@ export function createFindNote({ root, words, audio, getStage, director }) {
       return;
     }
     resEl.innerHTML = '';
-    if (paused) { noteEl.textContent = words.paused; el.dataset.s = 'paused'; whereEl.textContent = words.pausedSub; setHeard('', ''); return; }
+    if (paused) {
+      noteEl.textContent = words.paused; el.dataset.s = 'paused'; whereEl.textContent = words.pausedSub; setHeard('', '');
+      if (!halt.isShown('findnote')) {
+        halt.show('findnote', {
+          title: words.paused, text: words.pausedText,
+          buttons: [
+            { label: words.resume, primary: true, onClick: () => { if (!paused) return; paused = false; lastSoundAt = performance.now(); next(); } },
+            { label: words.stop, onClick: () => stop() },
+          ],
+        });
+      }
+      return;
+    }
     el.dataset.s = '';
     noteEl.textContent = NAMES[target.pc];
     whereEl.textContent = cfg.string < 0 ? words.anywhere : `${words.onThe} ${SNAME[cfg.string]} ${words.stringWord}`;

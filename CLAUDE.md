@@ -11,7 +11,9 @@ One immersive 3D world: you scroll along a guitar rig and each stop holds exerci
   rebuilt, its card links to the old plain screens at `/practice/` (the original app, untouched).
 - Emblem 琴 (koto/lyre), kana オルフェウス. Keep small text to a minimum — Kuba finds it cluttered.
   Captions stay folded until the big title is tapped. Boot = three "cores" (耳 手 律) that deliberate, then approve.
-- **Status:** rebuild steps 1–3 of 4 done (scroll menu, amp/pedal/stage; Tuner, Clean check, Change drill, Rhythm, Find the note all in-world). Next: step 4 — log on the pedal, sensitivity on the amp knobs, red full-screen pause alert.
+- **Status:** redesign done (rebuild steps 1–4). Everything opens in-world: Tuner, Clean check, Chord changes, Keep time,
+  Find the note, Sensitivity (amp knobs), Practice log (pedal); every listening pause = the red full-screen alert. No card
+  links to the old screens any more. Not on `main` yet — Kuba decides when it goes live. New features are built in this style.
 - Live: https://hello-test2-inky.vercel.app
 - Blueprints (exercise behaviour): `docs/blueprint-v1.md`, `docs/blueprint-v2.md`
 - Session history + next step: `SESSIONS.md` — read its last section first.
@@ -37,7 +39,7 @@ One immersive 3D world: you scroll along a guitar rig and each stop holds exerci
 ### Where things are
 | File | What it does |
 |---|---|
-| `src/content.js` | **All the words** (name, stops, cards, exercise texts). A card has `open` (in-world exercise), `href` (old screen bridge) or `soon`. |
+| `src/content.js` | **All the words** (name, stops, cards, exercise texts). A card has `open` (in-world exercise), `href` (link out, none used now) or `soon`. |
 | `src/config/shots.js` | The scroll storyboard: per "shot" where the focus window rests, which part is pinned there, size/rotation; plus `ex:` shots = camera while an exercise is open |
 | `index.html` | Page shell + start-up screen markup |
 | `src/main.js` | Entry: builds chapters from content, starts boot, lazy-loads the 3D stage, runs the frame loop |
@@ -55,6 +57,9 @@ One immersive 3D world: you scroll along a guitar rig and each stop holds exerci
 | `src/audio/livelink.js` | Mic → YIN pitch → `bus` event `live` (hz, level…). Exercises start/stop it |
 | `src/chapters/*.js` | `hero.js`, `stop.js` (one generic scroll stop: title + cards), `common.js` = shared title/tag/entrance |
 | `src/exercises/*.js` | Exercises that run in the 3D world. `tuner.js` (mic → nearest open string → cents; peg turns, string shakes), `cleancheck.js` (EX-02: strum / string-by-string × auto / pick; chord dots on the neck, strings tinted amber = clean / red = problem, amber ring = string to pluck), `changes.js` (EX-03 **Chord changes**: no metronome — pool of 2+ chords, loop or random, moves on the moment it hears the target chord; per-string problems collected for the summary; changes/min, avg time per change, % clean, slowest change), `keeptime.js` (EX-04 **Keep time**: 4 clicks listen, 8 strum along, then 30 s alone; strums judged only against each other — evenness vs the line through neighbouring strums, start vs end tempo = rushing / dragging; double hits merged, ~2-beat gaps = missed beat), `findnote.js` (EX-05: neck lying flat frets 0–12; amber ring where the found note was played; chosen string bright, others dimmed) |
+| `src/exercises/sensitivity.js` | SYS-01 on the amp's control panel (`amppanel` anchor): 5 knob buttons = levels 1–5, saved to `practice.settings.v1`; the 3D amp knobs turn with it (`guitar.setAmpLevel(n)`, also set on load) |
+| `src/exercises/log.js` | REC-01 on the recorder pedal: total active minutes, rounds / days / days-in-a-row, tabs **Day by day** (old Log screen) and **Progress** (one line per repeated thing — chord set, find-note mode, keep-time tempo — last, best, sparkline; partial rounds skipped). Reels spin faster while open (`guitar.setReels`) |
+| `src/exercises/halt.js` | The red full-screen **alert** = the pause screen of every listening exercise: `halt.show(owner, { title, text, after, buttons })`, `halt.hide(owner)`, `isShown(owner)`. Hides the HUD; closes on `ex:leave`. Mic keeps listening; the exercise closes it when playing resumes |
 | `src/exercises/picker.js` | In-world picker (never the browser's own `<select>`): a bottom sheet. `chords({ title, value, library, auto })` = chord chart (rows = root C…B, columns = maj · m · 7 · m7 · maj7 · sus2 · sus4, barre underlined, current chord's diagram at the bottom); `list({ title, value, tabs })` = tabs + slim one-line rows. Resolve with the value or null; hides the HUD while open |
 | `src/exercises/ear.js` | Shared by exercises: **loads the practice app's own engine files** (`/practice/audio.js`, `chords.js`, `timing.js`, `pause.js` → `Sound`, `Chords`, `Timing`, `Pause`) — no copies; mic on the site's audio clock (`openMic`), metronome `playClick`, sensitivity numbers (`profile()`, mirror of `settings.js` chord / drill / findNote / rhythm blocks — keep in step), `addLog` |
 | `src/ui/*.js` | `hud` (index, readouts, toggles), `boot`, `cursor`, `keys`, `eggs` (3 hidden things, listed at the top of the file) |
@@ -71,6 +76,7 @@ One immersive 3D world: you scroll along a guitar rig and each stop holds exerci
   timing calibration `practice.timing.v1`, clean-check / drill / rhythm / find-note settings, unfinished drill round `practice.drill.unfinished`.
 - New in-world exercise = `src/exercises/<name>.js` + an `ex:` shot in `shots.js` + `open: '<name>'` on its card + words in `content.ex`;
   set `el.dataset.ex = '<name>'` so it gets `--wx/--wy/--ww/--wh` of its window. Layout: `.ex-read` (big readout beside the window) + `.ex-panel` (controls above `.ex-go`).
+- Pauses: 20 s without playing → `halt.show('<exercise>', …)` (Resume + Stop / End & save); playing again → `halt.hide('<exercise>')`.
 - Timing against a metronome is unreliable on phones (delay drifts 50–150 ms, Bluetooth adds 150–300 ms; Kuba's real test: "always early or late").
   Prefer exercises that don't need it: judge the chord itself (Chord changes) or strums against each other (Keep time).
   The metronome drill and Rhythm were removed from the site (still in the old `/practice/` app), and with them the timing calibration.
@@ -117,7 +123,8 @@ One immersive 3D world: you scroll along a guitar rig and each stop holds exerci
 - Vercel project `hello-test2` (team `jakubkabele1`), linked to GitHub; **every push to `main` deploys** to production.
   Vercel runs `npm run build` and serves `dist/` (see `vercel.json`); other branches get preview links.
 - Work branch `claude/hello-test2-repo-9g3mvq`; push to both it and `main`.
-- The site overhaul: step 1 on branch `ccr-67fdb530-98eink`, steps 2–3 + Chord changes + Keep time on `ccr-f69829fe-b41sza` (contains step 1). Preview only — it goes to `main` when Kuba says so.
+- The site overhaul: step 1 on branch `ccr-67fdb530-98eink`, steps 2–3 + Chord changes + Keep time on `ccr-f69829fe-b41sza`,
+  step 4 (finished redesign) on `ccr-7376e667-ykiay9` (contains all earlier). Preview only — it goes to `main` when Kuba says so.
 
 ## Testing (no real guitar in the cloud)
 - Practice app: synthetic guitar audio (Karplus-Strong plucks/strums, optional phone-mic high-pass) generated with Python/numpy.

@@ -79,6 +79,18 @@ export const SHOTS = [
     win: { m: [0.45, 0.16, 0.49, 0.35], d: [0.34, 0.15, 0.2, 0.6] },
     fit: { m: 2.35, d: 3.6 }, rot: [-16, 0, 0], spin: 0,
   },
+  // the amp's control panel: the five knobs are the five sensitivity levels
+  {
+    ex: 'sensitivity', ch: 'amp', anchor: 'amppanel',
+    win: { m: [0.06, 0.15, 0.88, 0.17], d: [0.3, 0.14, 0.4, 0.22] },
+    fit: { m: 1.0, d: 1.4 }, rot: [0, 10, 0], spin: 0,
+  },
+  // the recorder pedal, close: its tape reels spin while the log is open
+  {
+    ex: 'log', ch: 'pedal', anchor: 'pedal',
+    win: { m: [0.6, 0.165, 0.33, 0.19], d: [0.62, 0.14, 0.14, 0.3] },
+    fit: { m: 0.95, d: 1.3 }, rot: [6, 14, -4], spin: 0,
+  },
 ];
 
 // How many shots belong to the scroll (the rest are exercise cameras).

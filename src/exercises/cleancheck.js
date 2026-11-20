@@ -17,6 +17,7 @@
 import { bus } from '../core/state.js';
 import { esc } from '../chapters/common.js';
 import { createPicker } from './picker.js';
+import * as halt from './halt.js';
 import { loadEngine, openMic, profile, addLog, loadPrefs, savePrefs, neckFrets, STRING_LABEL, stringName } from './ear.js';
 
 const PREFS = 'practice.cleancheck.settings';     // shared with the old screen
@@ -436,6 +437,16 @@ export function createCleanCheck({ root, words, audio, getStage, director }) {
     if (phase === 'capture' && running) small = words.hearing;
     const paused = running && idle && phase === 'listen' && !settleUntil;
     if (paused) { big = words.paused; small = words.pausedSub; }
+    // the red alert while paused; any strum closes it again
+    if (paused && !halt.isShown('cleancheck')) {
+      halt.show('cleancheck', {
+        title: words.paused, text: words.pausedText,
+        buttons: [
+          { label: words.resume, primary: true, onClick: () => { startedAt = performance.now(); lastEvent = 0; idle = false; render(); } },
+          { label: words.stop, onClick: () => stop() },
+        ],
+      });
+    } else if (!paused) halt.hide('cleancheck');
     bigEl.textContent = big;
     subEl.textContent = small;
     const bad = problems.length > 0 || marks.some((m) => m === 'warn' || m === 'muted' || m === 'extra');

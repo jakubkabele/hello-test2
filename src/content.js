@@ -67,7 +67,7 @@ export const content = {
     title: ['THE', 'AMP.'],
     caption: 'How strict Orpheus listens.',
     cards: [
-      { code: 'SYS-01', name: 'Sensitivity', line: 'Forgiving ↔ exact', href: '/practice/#/settings' },
+      { code: 'SYS-01', name: 'Sensitivity', line: 'Forgiving ↔ exact', open: 'sensitivity' },
       { code: 'SYS-02', name: 'Songs', line: 'Play along', soon: true },
     ],
   },
@@ -77,7 +77,7 @@ export const content = {
     title: ['THE', 'LOG.'],
     caption: 'Everything you practise, kept on this device.',
     cards: [
-      { code: 'REC-01', name: 'Practice log', line: 'Sessions, day by day', href: '/practice/#/log' },
+      { code: 'REC-01', name: 'Practice log', line: 'Day by day · progress', open: 'log' },
     ],
   },
 
@@ -87,12 +87,34 @@ export const content = {
     caption: '',
     cards: [
       { code: 'SOON', name: 'Today’s session', line: 'A guided set, built from your log', soon: true },
-      { code: 'SOON', name: 'Fast changes', line: 'One-minute chord switches', soon: true },
+      { code: 'SOON', name: 'Log export', line: 'Copy your week for a coach', soon: true },
     ],
   },
 
   // Words used inside the exercises
   ex: {
+    // the red full-screen alert = the pause screen of every listening exercise
+    halt: { code: 'SYS-HALT', jp: '休止', jpLong: '一時停止', paused: 'Paused', mic: 'Mic still listening — play to carry on' },
+    sensitivity: {
+      no: 'SYS-01', name: 'Sensitivity', jp: '感度',
+      low: 'Forgiving', high: 'Exact', recommended: 'Recommended', done: 'Done',
+      levels: [
+        { name: 'Relaxed', text: 'Lets small slips go. Wide “in tune” zone.', fit: 'For warming up and just playing.' },
+        { name: 'Easy-going', text: 'Only points out clear mistakes: a dead string, a wrong fret.', fit: 'For learning a new chord without being nagged.' },
+        { name: 'Balanced', text: 'Catches real mistakes, smooths out small wobbles.', fit: 'For everyday practice.' },
+        { name: 'Precise', text: 'Notices quiet strings and small slips. Asks you to pluck the strings a strum can’t prove.', fit: 'For polishing chords you know — quiet room.' },
+        { name: 'Maximum', text: 'Calls a string clean only when it rings clearly. Checks every string.', fit: '⚠ So picky it can flag things that sounded fine.' },
+      ],
+    },
+    log: {
+      no: 'REC-01', name: 'Practice log', jp: '記録',
+      total: 'Played on this device', minutes: 'minutes active', done: 'Done',
+      entries: 'rounds', daysPlayed: 'days', dayStreak: 'day in a row', daysStreak: 'days in a row',
+      days: 'Day by day', progress: 'Progress', today: 'Today', yesterday: 'Yesterday',
+      empty: 'Nothing recorded yet. Play any exercise — it lands here.',
+      noProgress: 'Play Chord changes, Find the note or Keep time a few times to see progress.',
+      round: 'round', rounds: 'rounds', from: 'from', best: 'best',
+    },
     tuner: {
       no: 'EX-01', name: 'Tuner', jp: '調弦',
       start: 'Start listening', stop: 'Stop',
@@ -118,6 +140,7 @@ export const content = {
       got: 'Got it —', pluck: 'Pluck', spotBtn: 'Check hidden strings',
       cleanOf: 'clean', redo: 'Tap a string to redo it.', again: 'Strum again any time.',
       paused: 'Paused', pausedSub: 'Play when you’re back — the clock is stopped.',
+      pausedText: 'Nothing heard for 20 s — the clock is stopped.', resume: 'Resume',
     },
     changes: {
       no: 'EX-03', name: 'Chord changes', jp: '持替',
@@ -127,7 +150,8 @@ export const content = {
       denied: 'Microphone not available.', failed: 'Could not load the listening engine.',
       playFirst: 'Play', go: 'Go — the minute is running', welcomeBack: 'Welcome back —', heard: 'Heard', waitingFor: 'waiting for',
       then: 'then', randomNext: 'next: random', changesWord: 'changes',
-      paused: 'Paused', pausedText: 'Nothing heard for 20 s — the clock is stopped. Play to carry on.', endSave: 'End & save',
+      paused: 'Paused', pausedText: 'Nothing heard for 20 s — the clock is stopped.', endSave: 'End & save', stop: 'Stop',
+      pausedByYou: 'The clock is stopped.', pausedAway: 'You left the screen — the clock is stopped.',
       perMin: 'changes / min', partial: 'Partial round', upFrom: 'Up from', baseline: 'First round with these chords — your baseline.',
       cleanChanges: 'changes clean', avgChange: 'Average change', slowest: 'Slowest', wrongChords: 'times another chord was heard',
     },
@@ -152,6 +176,7 @@ export const content = {
       notes: 'Notes', natural: 'Natural', all: 'All 12', string: 'String', any: 'Any',
       idle: 'A note appears — find it, play it, fast.', anywhere: 'anywhere on the neck', onThe: 'on the', stringWord: 'string',
       thats: 'That’s', paused: 'Paused', pausedSub: 'Play anything to carry on.',
+      pausedText: 'Nothing heard for 20 s — the clock is stopped.', resume: 'Resume',
       denied: 'Microphone not available.', failed: 'Could not load the listening engine.',
       nothing: 'Nothing found this time.', average: 'average', stoppedEarly: 'stopped early',
       faster: 'Faster than last time', lastTime: 'Last time', baseline: 'First round in this mode — your baseline.',
@@ -174,6 +199,7 @@ export const PARTS = {
   controls: { en: 'CONTROLS', jp: '操作部' },
   amp: { en: 'AMPLIFIER', jp: '増幅器' },
   pedal: { en: 'RECORDER', jp: '記録' },
+  amppanel: { en: 'SENSITIVITY', jp: '感度' },
   center: { en: 'ORPHEUS', jp: '琴' },
   peg: { en: 'PEG', jp: '糸巻' },
 };

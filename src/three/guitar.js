@@ -38,6 +38,7 @@ const DEFAULT_ANCHORS = {
   controls: [1.0, -2.25, 0.3],
   center: [0, G.CENTER_Y, 0],
   amp: [6.4, -1.15, 0.5],
+  amppanel: [6.18, 0.5, 0.53],  // the amp's row of five knobs (sensitivity)
   pedal: [-3.9, -2.2, 0.4],
 };
 
@@ -449,6 +450,15 @@ function buildProcedural() {
     k.rotation.z = 0.9 - i * 0.45;
     amp.add(k); ampKnobs.push(k);
   }
+  // a tiny number under each knob (1 … 5)
+  for (let i = 0; i < 5; i++) {
+    const c = document.createElement('canvas'); c.width = c.height = 64;
+    const g = c.getContext('2d');
+    g.fillStyle = '#e9e7f2'; g.font = '500 40px "IBM Plex Mono", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(String(i + 1), 32, 34);
+    const num = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.16), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, opacity: 0.7, depthWrite: false }));
+    num.position.set(-1.5 + i * 0.62, 1.39, 1.155); amp.add(num);
+  }
   const lamp = new THREE.Mesh(new THREE.CircleGeometry(0.09, 14), M.amber);
   lamp.position.set(1.85, 1.65, 1.152); amp.add(lamp);
   const handle = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.12, 0.35), M.dark);
@@ -700,11 +710,19 @@ export async function loadGuitar({ modelUrl = null } = {}) {
     }
     if (liveMark.visible) liveMark.rotation.z += dt * 2;
     pegs.forEach((pg, i) => { pg.rotation.x += (pegTarget[i] - pg.rotation.x) * Math.min(1, dt * 8); });
-    if (!calm) built.reels.forEach((r, i) => { r.rotation.z += dt * (i ? -0.6 : 0.6); });
+    if (!calm) built.reels.forEach((r, i) => { r.rotation.z += dt * (i ? -1 : 1) * reelSpeed; });
+    built.ampKnobs.forEach((k, i) => { if (knobTarget[i] !== null) k.rotation.z += (knobTarget[i] - k.rotation.z) * Math.min(1, dt * 7); });
     return energy;
   }
 
   const redrawText = () => redraws.forEach((fn) => fn());
+
+  // amp knobs = sensitivity 1–5: every knob up to the level is turned up, the rest down
+  const knobTarget = built.ampKnobs.map(() => null);
+  function setAmpLevel(n) { built.ampKnobs.forEach((k, i) => { knobTarget[i] = i < n ? -2.1 : 2.1; }); }
+  // recorder reels: spin faster while the log is open
+  let reelSpeed = 0.6;
+  function setReels(v) { reelSpeed = v; }
 
   // tuning pegs: turn one to an angle (radians); each also gets a focus anchor "peg0"…"peg5"
   const pegs = built.pegs;
@@ -735,5 +753,5 @@ export async function loadGuitar({ modelUrl = null } = {}) {
     return out;
   }
 
-  return { root, model, parts, anchors, anchorAt, setPeg, setStage, ampKnobs: built.ampKnobs, strings, hit, pluck, sustain, setChord, setLive, setTint, setExplode, update, redrawText };
+  return { root, model, parts, anchors, anchorAt, setPeg, setStage, setAmpLevel, setReels, ampKnobs: built.ampKnobs, strings, hit, pluck, sustain, setChord, setLive, setTint, setExplode, update, redrawText };
 }
