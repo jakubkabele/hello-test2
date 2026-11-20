@@ -76,6 +76,8 @@ export function createKeepTime({ root, words, audio, getStage, director }) {
   // ── setup ──
   $('.kt-minus').addEventListener('click', () => { cfg.bpm = Math.max(40, cfg.bpm - 5); savePrefs(PREFS, cfg); renderSetup(); });
   $('.kt-plus').addEventListener('click', () => { cfg.bpm = Math.min(160, cfg.bpm + 5); savePrefs(PREFS, cfg); renderSetup(); });
+  // Today's session hands over a tempo
+  bus.on('keeptime:load', ({ bpm }) => { if (bpm) { cfg.bpm = bpm; savePrefs(PREFS, cfg); renderSetup(); } });
   function renderSetup() {
     $('.kt-bpm').textContent = cfg.bpm;
     $('.kt-bpmbig').innerHTML = `${cfg.bpm}<small>BPM</small>`;

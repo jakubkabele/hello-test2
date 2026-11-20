@@ -9,6 +9,7 @@
 import { bus } from '../core/state.js';
 import { esc } from '../chapters/common.js';
 import { readLog } from './ear.js';
+import { createPicker } from './picker.js';
 
 const dur = (sec) => (sec < 60 ? `${Math.round(sec)} s` : `${Math.round(sec / 60)} min`);
 
@@ -87,9 +88,56 @@ function spark(pts, up) {
   const last = xy[xy.length - 1];
   return `<svg class="lg-spark" viewBox="0 0 80 24" aria-hidden="true"><polyline points="${xy.map((q) => q.map((n) => n.toFixed(1)).join(',')).join(' ')}"/><circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="2.2"/></svg>`;
 }
+// ── export: the log as Markdown, to paste into a chat with a coach (or Claude) ──
+// One heading per day with its active minutes, one line per round, then a short progress part.
+export function toMarkdown(list, range, w) {
+  const pad = (n) => String(n).padStart(2, '0');
+  const key = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const today = new Date();
+  const from = range === 'today' ? key(today) : range === 'week' ? key(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6)) : '0000';
+  const pick = list.filter((e) => e.date >= from);
+  const days = byDay(pick).reverse();   // oldest first reads better in a message
+  const lines = [`# ${w.mdTitle}${range === 'today' ? ` — ${key(today)}` : ''}`, ''];
+  if (!days.length) lines.push(w.mdEmpty);
+  days.forEach((d) => {
+    lines.push(`## ${d.date} — ${Math.round(d.activeSec / 60)} min active`);
+    d.entries.slice().reverse().forEach((e) => {
+      const t = e.title || e.exercise;
+      const sum = String(e.summary || '').trim();
+      lines.push(`- ${sum && sum.toLowerCase().startsWith(t.toLowerCase()) ? sum : sum ? `${t}: ${sum}` : t}`);
+    });
+    lines.push('');
+  });
+  const prog = progress(pick).filter((g) => g.pts.length > 1);
+  if (prog.length) {
+    lines.push(`## ${w.mdProgress}`);
+    prog.forEach((g) => {
+      const vs = g.pts.map((p) => p.v);
+      const best = g.t.up ? Math.max(...vs) : Math.min(...vs);
+      lines.push(`- ${g.name}: ${fmt(vs[0], g.t.unit)} → ${fmt(vs[vs.length - 1], g.t.unit)} (${w.best} ${fmt(best, g.t.unit)}, ${g.pts.length} ${w.rounds})`);
+    });
+    lines.push('');
+  }
+  return lines.join('\n').trim() + '\n';
+}
+
+// share sheet on phones; else copy; else a hidden text box + copy
+export async function shareText(text, title) {
+  if (navigator.share && /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)) {
+    try { await navigator.share({ title, text }); return 'shared'; } catch (e) { if (e && e.name === 'AbortError') return 'cancelled'; }
+  }
+  try { await navigator.clipboard.writeText(text); return 'copied'; } catch { /* not allowed */ }
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:-9999px;top:0';
+  document.body.appendChild(ta); ta.select();
+  let ok = false; try { ok = document.execCommand('copy'); } catch { ok = false; }
+  ta.remove();
+  return ok ? 'copied' : 'failed';
+}
+
 const fmt = (v, unit) => `${unit === ' s' ? v.toFixed(1) : Math.round(v)}${unit}`;
 
-export function createLog({ root, words, getStage, director }) {
+export function createLog({ root, words, audio, getStage, director }) {
   const el = document.createElement('section');
   el.className = 'ex ex-lg';
   el.dataset.ex = 'log';
@@ -107,13 +155,14 @@ export function createLog({ root, words, getStage, director }) {
         <button type="button" role="tab" data-t="days" class="is-on">${esc(words.days)}</button>
         <button type="button" role="tab" data-t="progress">${esc(words.progress)}</button>
       </div>
-      <div class="lg-body"></div>
+      <div class="lg-body" data-lenis-prevent></div>
     </div>
-    <button type="button" class="ex-go">${esc(words.done)}</button>`;
+    <button type="button" class="ex-go">${esc(words.exportBtn)}</button>`;
   root.appendChild(el);
   const $ = (q) => el.querySelector(q);
   const body = $('.lg-body');
   const tabs = [...el.querySelectorAll('.lg-tabs button')];
+  const picker = createPicker(el);
   let tab = 'days';
 
   function render() {
@@ -160,7 +209,24 @@ export function createLog({ root, words, getStage, director }) {
   }
 
   tabs.forEach((b) => b.addEventListener('click', () => { tab = b.dataset.t; body.scrollTop = 0; render(); }));
-  $('.ex-go').addEventListener('click', () => director.exit());
+  // Copy for coach: pick how much, then the phone's share sheet (or copy)
+  const go = $('.ex-go');
+  go.addEventListener('click', async () => {
+    const list = readLog().filter((e) => e && e.date);
+    if (!list.length) return;
+    const v = await picker.list({
+      title: words.export, value: '',
+      tabs: [{ id: 'r', label: words.export, note: words.exportNote, rows: [
+        { value: 'today', label: words.today, accent: true }, { value: 'week', label: words.week }, { value: 'all', label: words.all },
+      ] }],
+    });
+    if (!v) return;
+    if (audio) audio.unlock();
+    const res = await shareText(toMarkdown(list, v, words), words.mdTitle);
+    const say = { shared: words.shared, copied: words.copied, failed: words.copyFailed }[res];
+    if (say) { go.textContent = say; bus.emit('flash', 0.25); setTimeout(() => { go.textContent = words.exportBtn; }, 2200); }
+  });
+  bus.on('log:export', () => { if (el.classList.contains('is-open')) go.click(); });
   $('.ex-exit').addEventListener('click', () => director.exit());
 
   bus.on('ex:enter', (n) => {
@@ -171,6 +237,7 @@ export function createLog({ root, words, getStage, director }) {
   });
   bus.on('ex:leave', (n) => {
     if (n !== 'log') return;
+    picker.close();
     el.classList.remove('is-open');
     const st = getStage(); if (st) st.guitar.setReels(0.6);
   });

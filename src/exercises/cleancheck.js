@@ -97,6 +97,13 @@ export function createCleanCheck({ root, words, audio, getStage, director }) {
     savePrefs(PREFS, settings); restartFresh();
   });
 
+  // Today's session hands over a chord to check (strum mode)
+  bus.on('cleancheck:load', ({ chord }) => {
+    if (!chord) return;
+    settings.pick = 'manual'; settings.chord = chord; settings.mode = 'strum';
+    savePrefs(PREFS, settings);
+    if (E) restartFresh();
+  });
   function restartFresh() {
     const was = running;
     stop(); resetView(); render();

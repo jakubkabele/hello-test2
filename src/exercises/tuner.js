@@ -22,7 +22,7 @@ function saveLog(names, secs) {
     const now = new Date();
     const pad = (n) => String(n).padStart(2, '0');
     const list = JSON.parse(localStorage.getItem('practice.log.v1') || '[]');
-    list.push({
+    const entry = {
       id: now.getTime().toString(36) + '-' + Math.random().toString(36).slice(2, 6),
       ts: now.toISOString(),
       date: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
@@ -30,8 +30,10 @@ function saveLog(names, secs) {
       score: { inTune: names.length },
       summary: names.length ? `Tuned ${names.length} of 6 strings` : 'Tuned up',
       activeSec: Math.round(secs),
-    });
+    };
+    list.push(entry);
     localStorage.setItem('practice.log.v1', JSON.stringify(list));
+    bus.emit('logged', entry);
   } catch { /* storage blocked */ }
 }
 

@@ -8,7 +8,7 @@
 // mic share one timeline), the listening-sensitivity numbers, and writing to the practice log.
 
 import { audio } from '../audio/engine.js';
-import { clamp } from '../core/state.js';
+import { clamp, bus } from '../core/state.js';
 
 const FILES = ['audio.js', 'chords.js', 'timing.js', 'pause.js'];
 let engine = null;
@@ -116,6 +116,7 @@ export function addLog(entry) {
   const list = readLog();
   list.push(full);
   try { localStorage.setItem(LOG, JSON.stringify(list)); } catch { return null; }
+  bus.emit('logged', full);       // Today's session listens
   return full;
 }
 
@@ -126,6 +127,12 @@ export function loadPrefs(key, defaults) {
 export function savePrefs(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch { /* blocked */ } }
 
 // chord shape → what the 3D neck draws (frets, 'x' = don't play)
-export const neckFrets = (shape) => (shape ? shape.frets.map((f) => (f < 0 ? 'x' : f)) : null);
+// (+ .barre = { fret, from, to } so the neck draws a bar across the strings)
+export const neckFrets = (shape) => {
+  if (!shape) return null;
+  const f = shape.frets.map((x) => (x < 0 ? 'x' : x));
+  if (shape.barre) f.barre = shape.barre;
+  return f;
+};
 export const STRING_LABEL = ['E', 'A', 'D', 'G', 'B', 'e'];
 export const stringName = (i) => (i === 5 ? 'high e' : STRING_LABEL[i]);

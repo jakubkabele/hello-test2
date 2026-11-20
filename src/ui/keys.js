@@ -6,6 +6,7 @@ export function createKeys({ director, audio, focus, hud, input }) {
   const STRING_KEYS = { a: 0, s: 1, d: 2, f: 3, g: 4, h: 5 };
   window.addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target && e.target.closest && e.target.closest('input, textarea, select, [contenteditable]')) return;   // typing a song name
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     if (k !== 'Tab' && k !== 'Enter') audio.unlock();
     if (k >= '1' && k <= '7') { director.goTo(+k - 1); audio.blip('nav'); return; }

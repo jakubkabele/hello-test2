@@ -166,6 +166,16 @@ html.is-picking #hud { opacity: 0; visibility: hidden; transition: opacity 0.2s,
 .mini .op { fill: none; stroke: var(--paper); stroke-width: 0.7; }
 .mini .mk { fill: var(--dim); font: 6px var(--m); text-anchor: middle; }
 
+/* extra chord groups + "other chord" field under the chart */
+.pk-group { margin: 16px 0 6px; font-size: 8.5px; letter-spacing: 0.14em; color: var(--dim); text-transform: uppercase; }
+.pk-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.pk-chips .pk-c { flex: 0 0 auto; min-width: 52px; height: 36px; padding: 0 8px; font-size: 14px; }
+.pk-other { display: flex; gap: 6px; }
+.pk-other input, .sg-field input { flex: 1; min-width: 0; height: 44px; padding: 0 12px; border: 1px solid var(--line); background: rgba(30, 33, 64, 0.5); color: var(--paper); font: 400 18px/1 var(--d); letter-spacing: 0.02em; border-radius: 0; -webkit-appearance: none; }
+.pk-other input:focus, .sg-field input:focus { outline: none; border-color: var(--amber); }
+.pk-other input::placeholder, .sg-field input::placeholder { color: rgba(233, 231, 242, 0.35); }
+.pk-other-go { height: 44px; padding: 0 16px; border: 1px solid var(--paper); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; }
+
 /* tabs + slim rows (pairs) */
 .pk-tabs { display: flex; border: 1px solid var(--line); margin-bottom: 10px; }
 .pk-tabs button { flex: 1; height: 40px; font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); padding: 0 4px; }
@@ -351,7 +361,12 @@ html.is-picking #hud { opacity: 0; visibility: hidden; transition: opacity 0.2s,
 .ch-picks { grid-template-columns: 1.3fr 1fr; }
 .ch-order { flex: 1.3; }
 .ch-order button { flex: 1; }
-.ch-song { opacity: 0.45; border-style: dashed; }
+.ch-song.is-on { color: var(--amber); border-color: var(--amber); }
+.ch-pool.is-song { flex-direction: column; align-items: flex-start; gap: 8px; }
+.ch-songname { font: 400 44px/0.95 var(--d); }
+.ch-seq { display: flex; flex-wrap: wrap; gap: 2px 7px; font: 400 15px/1.2 var(--d); color: var(--dim); max-height: 3.7em; overflow: hidden; }
+.is-unknown { border-style: dashed !important; color: var(--dim); }
+.ch-seq .is-unknown { text-decoration: underline dotted; border: 0; }
 .ch-target { font: 400 120px/0.8 var(--d); white-space: nowrap; color: var(--paper); }
 .ch-target.is-long { font-size: 60px; line-height: 0.9; white-space: normal; }
 .ch-target.is-pop { animation: chpop 0.35s cubic-bezier(0.2, 0.9, 0.2, 1); }
@@ -446,6 +461,94 @@ html.is-picking #hud { opacity: 0; visibility: hidden; transition: opacity 0.2s,
 .sn-text { font: 800 15px/1.35 var(--s); min-height: 2.7em; }
 .sn-fit { font-size: 10px; line-height: 1.45; letter-spacing: 0.04em; color: var(--dim); }
 .sn-fit.is-warn { color: var(--alarm); }
+
+/* ── SET-00 today's session (stage podium) ── */
+.ex-ss .ex-read { gap: 4px; top: calc(var(--wy) + 2px); }
+.ss-len { position: absolute; left: var(--pad); right: var(--pad); top: calc(var(--wy) + var(--wh) + 16px); }
+.ss-len[hidden] { display: none; }
+.ss-len button { flex: 1; }
+.ex-ss[data-view='setup'] .ss-box { top: calc(var(--wy) + var(--wh) + 72px); }
+.ex-ss[data-view='run'] .ss-box, .ex-ss[data-view='done'] .ss-box { bottom: calc(var(--bot) + 140px); }
+.ss-step { position: relative; display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: start; padding: 11px 0; border-bottom: 1px solid var(--line-soft); }
+.ss-n { width: 24px; height: 24px; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font: 400 13px/1 var(--d); color: var(--dim); }
+.ss-txt { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ss-txt b { font: 800 14px/1.2 var(--s); }
+.ss-txt em { font: 500 8px/1 var(--m); font-style: normal; letter-spacing: 0.14em; color: var(--void); background: var(--amber); padding: 2px 4px; vertical-align: 2px; }
+.ss-txt > span { font-size: 9.5px; line-height: 1.45; color: var(--dim); letter-spacing: 0.02em; }
+.ss-rounds { display: flex; gap: 4px; }
+.ss-rounds i { width: 14px; height: 4px; background: var(--line); }
+.ss-rounds i.on { background: var(--amber); }
+.ss-min { font-size: 10px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.ss-step.is-cur { box-shadow: inset 3px 0 0 var(--amber); padding-left: 8px; margin-left: -8px; }
+.ss-step.is-cur .ss-n { border-color: var(--amber); background: var(--amber); color: var(--void); }
+.ss-step.is-done .ss-n { border-color: var(--amber); color: var(--amber); }
+.ss-step.is-done .ss-txt > span:first-of-type { color: var(--paper); }
+.ss-step.is-skip { opacity: 0.4; }
+.ss-again { grid-column: 2 / -1; justify-self: start; height: 28px; padding: 0 10px; border: 1px solid var(--line); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; }
+
+/* hero: the session card above the bottom edge */
+.hero-cards { bottom: calc(var(--bot) + 16px); }
+.ch-hero .hint { bottom: calc(var(--bot) + 104px); }
+.ch-hero .cue { bottom: calc(var(--bot) + 104px); }
+
+/* ── SYS-02 songs (amp) ── */
+.ex-sg .ex-read { gap: 4px; top: calc(var(--wy) + 2px); }
+.sg-back { align-self: flex-start; height: 30px; font-size: 9.5px; letter-spacing: 0.14em; color: var(--amber); text-transform: uppercase; pointer-events: auto; }
+.sg-title { font: 400 40px/0.92 var(--d); text-transform: uppercase; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.sg-box { position: absolute; left: var(--pad); right: var(--pad); top: calc(var(--wy) + var(--wh) + 18px); bottom: calc(var(--bot) + 82px); display: flex; flex-direction: column; }
+.ex-sg[data-view='song'] .sg-box { bottom: calc(var(--bot) + 140px); }
+.sg-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; pointer-events: auto;
+  background: rgba(11, 12, 20, 0.82); border: 1px solid var(--line); padding: 4px 12px 18px; }
+.sg-body button, .sg-body input, .sg-body label { pointer-events: auto; }
+.sg-item { width: 100%; display: flex; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--line-soft); text-align: left; }
+.sg-item > span { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.sg-item b { font: 800 14px/1.2 var(--s); }
+.sg-item > span > span { font-size: 9.5px; color: var(--dim); letter-spacing: 0.02em; }
+.sg-item i { font-style: normal; color: var(--dim); }
+.sg-item.is-empty b { color: var(--dim); }
+.sg-item:active { background: rgba(233, 231, 242, 0.08); }
+.sg-sec { padding: 12px 0 4px; }
+.sg-secname { font-size: 8.5px; letter-spacing: 0.16em; color: var(--dim); text-transform: uppercase; margin-bottom: 6px; }
+.sg-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.sg-chip { position: relative; min-width: 46px; height: 40px; padding: 0 10px; border: 1px solid var(--line); background: rgba(30, 33, 64, 0.45); font: 400 18px/1 var(--d); letter-spacing: 0.01em; }
+.sg-chip sup { font: 500 9px/1 var(--m); color: var(--amber); margin-left: 2px; vertical-align: 8px; }
+.sg-chip:active { background: var(--paper); color: var(--void); }
+.sg-addchord { border-style: dashed; border-color: var(--amber); color: var(--amber); font: 400 10px/1 var(--m); letter-spacing: 0.12em; text-transform: uppercase; }
+.sg-note { margin-top: 14px; font-size: 9.5px; line-height: 1.5; color: var(--dim); letter-spacing: 0.02em; }
+.sg-row2 { position: absolute; left: var(--pad); right: var(--pad); bottom: calc(var(--bot) + 82px); display: grid; grid-template-columns: 1.6fr 1fr; gap: 8px; }
+.sg-row2:empty { display: none; }
+.sg-row2 .pick:only-child { grid-column: 1 / -1; }
+.sg-field { display: flex; flex-direction: column; gap: 5px; padding-top: 12px; }
+.sg-field span { font-size: 8.5px; letter-spacing: 0.14em; color: var(--dim); text-transform: uppercase; }
+.sg-field input { font: 800 16px/1 var(--s); letter-spacing: 0.01em; height: 46px; }
+.sg-sec.is-edit { margin-top: 12px; padding: 10px; border: 1px solid var(--line-soft); }
+.sg-sechead { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.sg-sechead i { flex: 1; }
+.sg-secname-btn { height: 32px; padding: 0 10px; border: 1px solid var(--line); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; }
+.sg-secdel { width: 32px; height: 32px; color: var(--dim); }
+.sg-addsec { width: 100%; height: 44px; margin-top: 12px; border: 1px dashed var(--line); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; }
+.sg-delete { width: 100%; height: 44px; margin-top: 22px; color: var(--alarm); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; border: 1px solid rgba(194, 86, 75, 0.5); }
+.sg-soon { font: 800 15px/1.4 var(--s); margin: 6px 0 16px; }
+
+/* teach a chord: fret grid */
+.tg { display: flex; gap: 12px; align-items: flex-start; }
+.tg-grid { flex: 1; display: grid; grid-template-columns: 26px repeat(6, 1fr); gap: 3px; }
+.tg-grid > b { text-align: center; font: 400 16px/1 var(--d); padding-bottom: 4px; }
+.tg-f { display: flex; align-items: center; justify-content: flex-end; padding-right: 4px; font-size: 10px; color: var(--dim); }
+.tg-c { height: 34px; border: 1px solid var(--line-soft); background: rgba(30, 33, 64, 0.35); position: relative; }
+.tg-c::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--line); }
+.tg-c.is-on { background: transparent; border-color: var(--amber); }
+.tg-c.is-on::after { content: ''; position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; margin: -8px; border-radius: 50%; background: var(--amber); }
+.tg-c.is-open.is-on::after { background: transparent; border: 2px solid var(--amber); }
+.tg-side { width: 70px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 9px; letter-spacing: 0.1em; color: var(--dim); text-transform: uppercase; }
+.tg-base { width: 44px; height: 40px; border: 1px solid var(--line); font-size: 14px; }
+.tg-base[disabled] { opacity: 0.3; }
+.tg-prev .mini { width: 64px; height: 58px; }
+.tg-notes { display: grid; grid-template-columns: 26px repeat(6, 1fr); gap: 3px; margin: 8px 82px 0 0; }
+.tg-notes::before { content: ''; }
+.tg-notes span { text-align: center; font: 500 12px/1 var(--m); color: var(--amber); }
+.pk-multi .tg-save { background: var(--paper); color: var(--void); }
+.pk-multi .tg-save[disabled] { opacity: 0.35; }
 
 /* ── REC-01 practice log (recorder pedal) ── */
 .ex-lg .ex-read { gap: 4px; top: calc(var(--wy) + 2px); }
@@ -579,4 +682,12 @@ html.reduced .halt, html.reduced .halt *, html.reduced .halt::after { animation:
   .lg-stats { left: 16vw; right: auto; width: 40vw; top: calc(var(--wy) + 190px); }
   .lg-box { left: 16vw; right: auto; width: 40vw; top: calc(var(--wy) + 262px); bottom: calc(var(--bot) + 110px); }
   .halt-text { font-size: 19px; }
+  .ex-sg .ex-read, .ex-ss .ex-read { left: 16vw; width: 40vw; top: calc(var(--wy) + 4px); }
+  .ex-sg .sg-box, .ex-ss .sg-box { left: 16vw; right: auto; width: 40vw; top: calc(var(--wy) + 200px); bottom: calc(var(--bot) + 110px); }
+  .ex-ss .ss-len { left: 16vw; right: auto; width: 40vw; top: calc(var(--wy) + 190px); }
+  .ex-ss[data-view='setup'] .ss-box { top: calc(var(--wy) + 250px); }
+  .ex-sg[data-view='song'] .sg-box, .ex-ss[data-view='run'] .ss-box, .ex-ss[data-view='done'] .ss-box { bottom: calc(var(--bot) + 166px); }
+  .sg-row2 { left: 16vw; right: auto; width: 40vw; bottom: calc(var(--bot) + 100px); }
+  .sg-title { font-size: 64px; }
+  .hero-cards { left: var(--pad); right: auto; width: 400px; bottom: calc(var(--bot) + 70px); }
 }

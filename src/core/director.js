@@ -141,5 +141,12 @@ export function createDirector({ track, layers, timelines }) {
     });
   }
 
-  return { measure, update, goTo, step, range, enter, exit, get exercise() { return ex.name; } };
+  // from one exercise straight into another (e.g. a song → Chord changes): back out, then in
+  function swap(name) {
+    if (!ex.name) { enter(name); return; }
+    const off = bus.on('ex:closed', () => { off && off(); setTimeout(() => enter(name), 30); });
+    exit();
+  }
+
+  return { measure, update, goTo, step, range, enter, exit, swap, get exercise() { return ex.name; } };
 }

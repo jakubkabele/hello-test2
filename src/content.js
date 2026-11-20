@@ -31,6 +31,10 @@ export const content = {
     title: ['IT', 'HEARS', 'YOU.'],
     caption: 'A practice partner that listens to your guitar and tells you the truth. Scroll to choose what to work on.',
     hint: 'Drag = rotate · Tap strings = play · Hold = focus',
+    cards: [
+      { code: 'SET-00', name: 'Today’s session', line: 'A set built from your log · 20–60 min', open: 'session' },
+    ],
+    sessionGoing: 'Going on', sessionDone: 'Done for today ✓ — open to see it',
   },
 
   tuner: {
@@ -68,7 +72,7 @@ export const content = {
     caption: 'How strict Orpheus listens.',
     cards: [
       { code: 'SYS-01', name: 'Sensitivity', line: 'Forgiving ↔ exact', open: 'sensitivity' },
-      { code: 'SYS-02', name: 'Songs', line: 'Play along', soon: true },
+      { code: 'SYS-02', name: 'Songs', line: 'Your songs · their chord changes', open: 'songs' },
     ],
   },
 
@@ -82,17 +86,24 @@ export const content = {
   },
 
   stage: {
-    no: '06', name: 'Next on stage', jp: '予告',
-    title: ['COMING', 'SOON.'],
-    caption: '',
+    no: '06', name: 'Sandbox', jp: '砂場',
+    title: ['SAND', 'BOX.'],
+    caption: 'Compose. Build backing tracks with a synth. Write your own songs.',
     cards: [
-      { code: 'SOON', name: 'Today’s session', line: 'A guided set, built from your log', soon: true },
-      { code: 'SOON', name: 'Log export', line: 'Copy your week for a coach', soon: true },
+      { code: 'SOON', name: 'Sandbox', line: 'Compose · synth · backing tracks', soon: true },
     ],
   },
 
   // Words used inside the exercises
   ex: {
+    session: {
+      no: 'SET-00', name: 'Today’s session', jp: '本日',
+      length: 'Length', todays: 'Today’s set', minutes: 'minutes', steps: 'steps', start: 'Start the session', loading: 'Reading your log…',
+      left: 'Left today', step: 'step', thisStep: 'This step', skip: 'Skip', session: 'Session', end: 'End it', go: 'Go', next: 'Next',
+      again: 'Again', round: 'Round', newTag: 'NEW', finished: 'Done today', minActive: 'minutes playing', newOne: 'Start a new one',
+      exportBtn: 'Copy for coach ↗', failed: 'Could not load the listening engine.',
+      md: { mdTitle: 'Guitar practice log', mdEmpty: 'Nothing played today.', mdProgress: 'Progress', best: 'best', rounds: 'rounds', shared: 'Sent ✓', copied: 'Copied ✓', copyFailed: 'Couldn’t copy — try again' },
+    },
     // the red full-screen alert = the pause screen of every listening exercise
     halt: { code: 'SYS-HALT', jp: '休止', jpLong: '一時停止', paused: 'Paused', mic: 'Mic still listening — play to carry on' },
     sensitivity: {
@@ -106,6 +117,28 @@ export const content = {
         { name: 'Maximum', text: 'Calls a string clean only when it rings clearly. Checks every string.', fit: '⚠ So picky it can flag things that sounded fine.' },
       ],
     },
+    songs: {
+      no: 'SYS-02', name: 'Songs', jp: '曲',
+      yours: 'Your songs', songsWord: 'songs', songs: 'Songs', song: 'Song', own: 'Your own song', chordsWord: 'chords',
+      noChords: 'no chords yet', noChordsYet: 'No chords yet — tap Edit to add them.', empty: 'No songs yet. Add one.',
+      best: 'best', round: 'round', rounds: 'rounds',
+      add: 'Add song', how: 'How', manual: 'Manually', manualSub: 'type it in · your own songs too',
+      own2: 'From my own sources', web: 'From the internet', soonGemini: 'soon · Gemini',
+      ownSoon: 'Coming soon: add screenshots, a PDF, an mp3 or a video and Gemini fills in the chords for you to check.',
+      webSoon: 'Coming soon: type the song and band (and a YouTube or web link) and Gemini looks up the chords for you to check.',
+      ok: 'OK',
+      play: 'Play the changes', addChords: 'Add chords', edit: 'Edit', hardest: 'Hardest change', hardestGuess: 'Hardest change (guess)',
+      unknownNote: 'Not checked yet (tap to teach the fingering):',
+      newSong: 'New song', cancel: 'Cancel', save: 'Save', titleLabel: 'Title', titlePh: 'Song name', artistLabel: 'Artist', artistPh: 'Band — leave empty for your own song',
+      chord: 'Chord', section: 'Section', again: 'again', addTo: 'Add to', other: 'Other chord', otherPh: 'e.g. Bbmaj9 · G/D', addBtn: 'Add',
+      otherNote: 'Not in the lists? Type it. Then teach its fingering once, or leave it unchecked.', taught: 'Taught by you',
+      deleteSong: 'Delete song', deleteSure: 'Gone for good. Your practice log stays.', deleteYes: 'Delete it', keep: 'Keep it',
+      teachIt: 'Teach the fingering', changeFingering: 'Change the fingering', taughtByYou: 'taught by you', notChecked: 'not checked yet',
+      moveLeft: 'Move left', moveRight: 'Move right', repeat: 'Repeat it', remove: 'Remove',
+      teach: 'Teach', fret: 'fret', later: 'Later', saveChord: 'Save chord',
+      teachHow: 'Tap where each string is pressed (✕ = not played, 0 = open). ▲▼ move up the neck.',
+      teachNoName: 'The name isn’t a chord name the app can read — it will still be checked by these notes.',
+    },
     log: {
       no: 'REC-01', name: 'Practice log', jp: '記録',
       total: 'Played on this device', minutes: 'minutes active', done: 'Done',
@@ -114,6 +147,9 @@ export const content = {
       empty: 'Nothing recorded yet. Play any exercise — it lands here.',
       noProgress: 'Play Chord changes, Find the note or Keep time a few times to see progress.',
       round: 'round', rounds: 'rounds', from: 'from', best: 'best',
+      exportBtn: 'Copy for coach ↗', export: 'Copy for coach', exportNote: 'As text (Markdown) — paste it into a chat with a teacher or an AI coach.',
+      week: 'Last 7 days', all: 'Everything', shared: 'Sent ✓', copied: 'Copied ✓', copyFailed: 'Couldn’t copy — try again',
+      mdTitle: 'Guitar practice log', mdEmpty: 'Nothing played in this time.', mdProgress: 'Progress',
     },
     tuner: {
       no: 'EX-01', name: 'Tuner', jp: '調弦',
@@ -146,7 +182,8 @@ export const content = {
       no: 'EX-03', name: 'Chord changes', jp: '持替',
       start: 'Start', pause: 'Pause', resume: 'Resume', again: 'Again', setup: 'Change settings',
       chords: 'Chords', presets: 'Presets', presetsBtn: 'Pairs · progressions', order: 'Order', loop: 'Loop', random: 'Random',
-      fromSong: 'From a song', lastTime: 'Last', newOne: 'New', clean: 'clean',
+      fromSong: 'From a song', songs: 'Your songs', noSongs: 'No songs with chords yet — add one on the amp (Songs).', chordsWord: 'chords',
+      taught: 'Taught by you', uncheckedChanges: 'into chords it can’t check yet (teach them in Songs)', lastTime: 'Last', newOne: 'New', clean: 'clean',
       denied: 'Microphone not available.', failed: 'Could not load the listening engine.',
       playFirst: 'Play', go: 'Go — the minute is running', welcomeBack: 'Welcome back —', heard: 'Heard', waitingFor: 'waiting for',
       then: 'then', randomNext: 'next: random', changesWord: 'changes',

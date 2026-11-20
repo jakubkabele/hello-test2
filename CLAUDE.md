@@ -5,8 +5,8 @@
 One immersive 3D world: you scroll along a guitar rig and each stop holds exercises, which open
 *inside* that world. The 3D guitar silently copies what the mic hears.
 
-- Scroll stops: 00 hero · 01 Tuner (headstock) · 02 Chords (fretboard) · 03 Rhythm + Find the note (body)
-  · 04 Amp (sensitivity, songs) · 05 Recorder pedal (log) · 06 Stage (coming soon).
+- Scroll stops: 00 hero (Today's session) · 01 Tuner (headstock) · 02 Chords (fretboard) · 03 Keep time + Find the note (body)
+  · 04 Amp (sensitivity, songs) · 05 Recorder pedal (log + export) · 06 Sandbox (coming soon: compose, synth, backing tracks).
 - **Being rebuilt into the new style, one step at a time** (see `SESSIONS.md`). Until an exercise is
   rebuilt, its card links to the old plain screens at `/practice/` (the original app, untouched).
 - Emblem 琴 (koto/lyre), kana オルフェウス. Keep small text to a minimum — Kuba finds it cluttered.
@@ -14,6 +14,11 @@ One immersive 3D world: you scroll along a guitar rig and each stop holds exerci
 - **Status:** redesign done (rebuild steps 1–4). Everything opens in-world: Tuner, Clean check, Chord changes, Keep time,
   Find the note, Sensitivity (amp knobs), Practice log (pedal); every listening pause = the red full-screen alert. No card
   links to the old screens any more. Not on `main` yet — Kuba decides when it goes live. New features are built in this style.
+- **Features (2026-11-20):** Songs (manual entry; sections; any chord name; teach unknown chords on a fret grid),
+  bigger chord memory (+88 shapes), barre line on the neck, Today's session (20/45/60 min, from the log), log export (Markdown).
+- **Later:** add a song "from my own sources" (screenshots/PDF/mp3/mp4) and "from the internet" (song + band + link) —
+  planned with **Gemini** (takes video, audio, YouTube links); needs a Google AI Studio key in Vercel + a small `/api` function.
+  Sandbox on the stage (composer, synth, backing tracks).
 - Live: https://hello-test2-inky.vercel.app
 - Blueprints (exercise behaviour): `docs/blueprint-v1.md`, `docs/blueprint-v2.md`
 - Session history + next step: `SESSIONS.md` — read its last section first.
@@ -58,8 +63,11 @@ One immersive 3D world: you scroll along a guitar rig and each stop holds exerci
 | `src/chapters/*.js` | `hero.js`, `stop.js` (one generic scroll stop: title + cards), `common.js` = shared title/tag/entrance |
 | `src/exercises/*.js` | Exercises that run in the 3D world. `tuner.js` (mic → nearest open string → cents; peg turns, string shakes), `cleancheck.js` (EX-02: strum / string-by-string × auto / pick; chord dots on the neck, strings tinted amber = clean / red = problem, amber ring = string to pluck), `changes.js` (EX-03 **Chord changes**: no metronome — pool of 2+ chords, loop or random, moves on the moment it hears the target chord; per-string problems collected for the summary; changes/min, avg time per change, % clean, slowest change), `keeptime.js` (EX-04 **Keep time**: 4 clicks listen, 8 strum along, then 30 s alone; strums judged only against each other — evenness vs the line through neighbouring strums, start vs end tempo = rushing / dragging; double hits merged, ~2-beat gaps = missed beat), `findnote.js` (EX-05: neck lying flat frets 0–12; amber ring where the found note was played; chosen string bright, others dimmed) |
 | `src/exercises/sensitivity.js` | SYS-01 on the amp's control panel (`amppanel` anchor): 5 knob buttons = levels 1–5, saved to `practice.settings.v1`; the 3D amp knobs turn with it (`guitar.setAmpLevel(n)`, also set on load) |
-| `src/exercises/log.js` | REC-01 on the recorder pedal: total active minutes, rounds / days / days-in-a-row, tabs **Day by day** (old Log screen) and **Progress** (one line per repeated thing — chord set, find-note mode, keep-time tempo — last, best, sparkline; partial rounds skipped). Reels spin faster while open (`guitar.setReels`) |
+| `src/exercises/log.js` | REC-01 on the recorder pedal (+ **Copy for coach**: `toMarkdown(list, 'today'|'week'|'all')` → phone share sheet or clipboard, `shareText()`): total active minutes, rounds / days / days-in-a-row, tabs **Day by day** (old Log screen) and **Progress** (one line per repeated thing — chord set, find-note mode, keep-time tempo — last, best, sparkline; partial rounds skipped). Reels spin faster while open (`guitar.setReels`) |
 | `src/exercises/halt.js` | The red full-screen **alert** = the pause screen of every listening exercise: `halt.show(owner, { title, text, after, buttons })`, `halt.hide(owner)`, `isShown(owner)`. Hides the HUD; closes on `ex:leave`. Mic keeps listening; the exercise closes it when playing resumes |
+| `src/exercises/chordbook.js` | Every chord the site knows: CORE (engine's 31, the only ones in blind recognition) + MORE (88 extra: power, 6, add9, 9, dim, aug, m7♭5, slash, more barre) + TAUGHT (yours, `practice.chords.taught`). `shapeFor(E, name)` (flats/sharps/any spelling), `rank(E, h, extraShapes)`, `findBarre(frets)`, `teach(name, frets)` |
+| `src/exercises/songs.js` | SYS-02 on the amp: song list (`practice.songs.v1`, seeded with Kuba's goal songs, names only), song page (sections + chord chips, unknown = dashed "?"), editor (title, artist, sections, chords from the chart / More / typed), fret-grid **teach** sheet. "Play the changes" → Chord changes with the song in order; "Hardest change" = slowest measured pair or a guess. Add-song options 2–3 show "soon · Gemini" |
+| `src/exercises/session.js` | SET-00 Today's session (hero card, camera on the stage podium): length 20/45/60 → `buildPlan()` from the log (weakest chord, slowest pair, next level at 30/min, keep-time +5 after 90 %, least-played song). Steps open the exercise set up (`changes:load`, `cleancheck:load`, `keeptime:load` + `director.swap`), count results via the `logged` event, come back on `ex:closed`. Saved per day in `practice.session.v1`. Done → copy today for a coach |
 | `src/exercises/picker.js` | In-world picker (never the browser's own `<select>`): a bottom sheet. `chords({ title, value, library, auto })` = chord chart (rows = root C…B, columns = maj · m · 7 · m7 · maj7 · sus2 · sus4, barre underlined, current chord's diagram at the bottom); `list({ title, value, tabs })` = tabs + slim one-line rows. Resolve with the value or null; hides the HUD while open |
 | `src/exercises/ear.js` | Shared by exercises: **loads the practice app's own engine files** (`/practice/audio.js`, `chords.js`, `timing.js`, `pause.js` → `Sound`, `Chords`, `Timing`, `Pause`) — no copies; mic on the site's audio clock (`openMic`), metronome `playClick`, sensitivity numbers (`profile()`, mirror of `settings.js` chord / drill / findNote / rhythm blocks — keep in step), `addLog` |
 | `src/ui/*.js` | `hud` (index, readouts, toggles), `boot`, `cursor`, `keys`, `eggs` (3 hidden things, listed at the top of the file) |
@@ -76,6 +84,9 @@ One immersive 3D world: you scroll along a guitar rig and each stop holds exerci
   timing calibration `practice.timing.v1`, clean-check / drill / rhythm / find-note settings, unfinished drill round `practice.drill.unfinished`.
 - New in-world exercise = `src/exercises/<name>.js` + an `ex:` shot in `shots.js` + `open: '<name>'` on its card + words in `content.ex`;
   set `el.dataset.ex = '<name>'` so it gets `--wx/--wy/--ww/--wh` of its window. Layout: `.ex-read` (big readout beside the window) + `.ex-panel` (controls above `.ex-go`).
+- Events: `logged` (every new log entry, from `ear.addLog` and the tuner), `changes:load` / `cleancheck:load` / `keeptime:load` (hand settings to an exercise),
+  `director.swap(name)` = leave one exercise and open another.
+- Chords: always look shapes up with `chordbook.shapeFor` (never `Chords.LIBRARY.find`), so extra and taught chords work; a chord with no shape is "not checked" (any strum moves on in Chord changes).
 - Pauses: 20 s without playing → `halt.show('<exercise>', …)` (Resume + Stop / End & save); playing again → `halt.hide('<exercise>')`.
 - Timing against a metronome is unreliable on phones (delay drifts 50–150 ms, Bluetooth adds 150–300 ms; Kuba's real test: "always early or late").
   Prefer exercises that don't need it: judge the chord itself (Chord changes) or strums against each other (Keep time).

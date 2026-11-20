@@ -18,13 +18,15 @@ import { bus } from '../core/state.js';
 import { esc } from '../chapters/common.js';
 import { createPicker } from './picker.js';
 import * as halt from './halt.js';
+import { shapeFor, rank, allShapes, MORE_GROUPS } from './chordbook.js';
+import { loadSongs, songChords } from './songs.js';
 import { loadEngine, openMic, profile, addLog, readLog, loadPrefs, savePrefs, neckFrets, stringName } from './ear.js';
 
 const PREFS = 'practice.changes.settings';
 const ROUND_SEC = 60;
 const WIN = 16384;            // samples judged after a strum (~0.35 s)
 const STEADY_EVERY = 0.3;     // s between "what's ringing?" checks when no strum was caught
-const PRESETS = [
+export const PRESETS = [
   ['warmup', 'Warm-up', [['C', 'G'], ['G', 'D'], ['Am', 'Em'], ['C', 'Am'], ['D', 'A'], ['Em', 'G'], ['A', 'E'], ['Am', 'Dm'], ['E', 'Am'], ['D', 'Em']]],
   ['barre1', 'Open → barre', [['C', 'F'], ['Am', 'F'], ['D', 'Bm'], ['G', 'Bm'], ['Em', 'Bm'], ['A', 'F#m'], ['Dm', 'F'], ['E', 'F#m']]],
   ['barre2', 'Barre → barre', [['F', 'Bm'], ['F', 'G barre'], ['Bm', 'F#m'], ['F', 'Gm'], ['Bm', 'B'], ['G barre', 'Bm'], ['Cm', 'F']]],
@@ -49,7 +51,7 @@ export function createChanges({ root, words, audio, getStage, director }) {
         </div>
         <div class="dr-row">
           <div class="seg ch-order" role="group" aria-label="${esc(words.order)}"><span class="seg-l">${esc(words.order)}</span><button type="button" data-o="loop">${esc(words.loop)}</button><button type="button" data-o="random">${esc(words.random)}</button></div>
-          <button type="button" class="tog ch-song" disabled>${esc(words.fromSong)} · SOON</button>
+          <button type="button" class="tog ch-song">♪ ${esc(words.fromSong)}</button>
         </div>
       </div>
     </div>
@@ -85,10 +87,10 @@ export function createChanges({ root, words, audio, getStage, director }) {
 
   let E = null, open = false, view = 'setup';
   const cfg = loadPrefs(PREFS, { pool: ['Am', 'F'], order: 'loop' });
-  const shapeOf = (n) => E && E.Chords.LIBRARY.find((c) => c.name === n);
+  const shapeOf = (n) => (E ? shapeFor(E, n) : null);     // core, extra or taught chords; null = unknown (not checked)
   // the same chords are the same set, in any order: Em ↔ Am = Am ↔ Em (old results keyed 'loop:A|B' still match)
   const setKey = (names) => names.slice().sort().join('|');
-  const poolKey = () => setKey(cfg.pool);
+  const poolKey = () => (cfg.song ? `song:${cfg.song.id}` : setKey(cfg.pool));
   const pairKey = (a, b) => [a, b].sort().join(' ↔ ');
   const g3 = () => getStage()?.guitar;
 
@@ -101,8 +103,12 @@ export function createChanges({ root, words, audio, getStage, director }) {
   // ── setup ──
   $('.ch-chords').addEventListener('click', async () => {
     if (!E) return;
-    const v = await picker.chords({ title: words.chords, value: cfg.pool, library: E.Chords.LIBRARY, multi: true });
-    if (v) { cfg.pool = v; savePrefs(PREFS, cfg); renderSetup(); }
+    const all = allShapes(E);
+    const v = await picker.chords({
+      title: words.chords, value: cfg.song ? [] : cfg.pool, library: E.Chords.LIBRARY, multi: true,
+      more: [...MORE_GROUPS.map(([label, f]) => ({ label, shapes: all.more.filter(f) })), { label: words.taught, shapes: all.taught }],
+    });
+    if (v) { cfg.pool = v; cfg.song = null; savePrefs(PREFS, cfg); renderSetup(); }
   });
   $('.ch-presets').addEventListener('click', async () => {
     const match = PRESETS.flatMap(([, , sets]) => sets).find((p) => setKey(p) === poolKey());
@@ -117,16 +123,42 @@ export function createChanges({ root, words, audio, getStage, director }) {
         }),
       })),
     });
-    if (v) { cfg.pool = v.split('|'); cfg.order = cfg.pool.length > 2 ? cfg.order : 'loop'; savePrefs(PREFS, cfg); renderSetup(); }
+    if (v) { cfg.pool = v.split('|'); cfg.song = null; cfg.order = cfg.pool.length > 2 ? cfg.order : 'loop'; savePrefs(PREFS, cfg); renderSetup(); }
   });
+  // a saved song: its chords, in order (Loop)
+  $('.ch-song').addEventListener('click', async () => {
+    const songs = loadSongs().filter((x) => songChords(x).length >= 2);
+    const v = await picker.list({
+      title: words.fromSong, value: cfg.song ? cfg.song.id : '',
+      tabs: [{ id: 'songs', label: words.songs, note: songs.length ? '' : words.noSongs,
+        rows: songs.map((x) => ({ value: x.id, label: x.title, sub: `${songChords(x).length} ${words.chordsWord}` })) }],
+    });
+    const song = v && songs.find((x) => x.id === v);
+    if (song) loadPool({ pool: songChords(song), order: 'loop', song: { id: song.id, title: song.title } });
+  });
+  // another screen (Songs, Today's session) hands over chords to practise
+  function loadPool({ pool, order = 'loop', song = null }) {
+    cfg.pool = pool.slice(); cfg.order = order; cfg.song = song;
+    savePrefs(PREFS, cfg);
+    if (view !== 'run') { setView('setup'); renderSetup(); }
+  }
+  bus.on('changes:load', loadPool);
   orderBtns.forEach((b) => b.addEventListener('click', () => { cfg.order = b.dataset.o; savePrefs(PREFS, cfg); renderSetup(); }));
 
   function renderSetup() {
-    if (E) cfg.pool = cfg.pool.filter((n) => shapeOf(n));
-    if (cfg.pool.length < 2) cfg.pool = ['Am', 'F'];
-    $('.ch-pool').innerHTML = cfg.pool.map((n) => `<span>${esc(n)}</span>`).join(`<i>${cfg.order === 'loop' ? '→' : '·'}</i>`);
+    if (E && !cfg.song) cfg.pool = cfg.pool.filter((n) => shapeOf(n));
+    if (cfg.pool.length < 2) { cfg.pool = ['Am', 'F']; cfg.song = null; }
+    if (cfg.song) {
+      // a song: its name big, the chords small (they can be many, with repeats)
+      $('.ch-pool').innerHTML = `<span class="ch-songname">♪ ${esc(cfg.song.title)}</span><small class="ch-seq">${cfg.pool.map((n) => `<span class="${E && !shapeOf(n) ? 'is-unknown' : ''}">${esc(n)}</span>`).join(' ')}</small>`;
+      $('.ch-pool').classList.add('is-song');
+    } else {
+      $('.ch-pool').classList.remove('is-song');
+      $('.ch-pool').innerHTML = cfg.pool.map((n) => `<span>${esc(n)}</span>`).join(`<i>${cfg.order === 'loop' ? '→' : '·'}</i>`);
+    }
     $('.ch-pool').classList.toggle('is-many', cfg.pool.length > 3);
-    $('.ch-chords b').textContent = cfg.pool.join(' · ');
+    $('.ch-chords b').textContent = cfg.song ? cfg.song.title : cfg.pool.join(' · ');
+    $('.ch-song').classList.toggle('is-on', !!cfg.song);
     orderBtns.forEach((b) => b.classList.toggle('is-on', b.dataset.o === cfg.order));
     const last = lastResult(poolKey());
     $('.ch-last').textContent = last ? `${words.lastTime} ${last.score.changesPerMin}/min · ${last.score.cleanPct}% ${words.clean}` : words.newOne;
@@ -134,7 +166,9 @@ export function createChanges({ root, words, audio, getStage, director }) {
     if (open && view === 'setup') showChord(cfg.pool[0]);
   }
   function lastResult(key) {
-    const l = readLog().filter((e) => e.exercise === 'chord-changes' && e.score && !e.score.partial && setKey(String(e.score.key || '').replace(/^\w+:/, '').split('|')) === key);
+    const song = key.startsWith('song:') ? key.slice(5) : null;
+    const l = readLog().filter((e) => e.exercise === 'chord-changes' && e.score && !e.score.partial &&
+      (song ? e.score.songId === song : !e.score.songId && setKey(String(e.score.key || '').replace(/^\w+:/, '').split('|')) === key));
     return l[l.length - 1] || null;
   }
 
@@ -142,7 +176,7 @@ export function createChanges({ root, words, audio, getStage, director }) {
   let running = false, paused = false, raf = 0, mic = null, ctx = null, strums = null;
   let seq = [], idx = 0, target = '', prevName = '', started = false;
   let clockStart = 0, activeSec = 0, lastTick = 0, lastSoundAt = 0, lastLandAt = 0, nextSteady = 0, holdOff = 0;
-  let jobs = [], changes = [], wrongHeard = 0, lastWrong = '', landSnap = null;
+  let jobs = [], changes = [], wrongHeard = 0, lastWrong = '', landSnap = null, extras = [];
 
   go.addEventListener('click', () => {
     if (!E) return;
@@ -152,11 +186,19 @@ export function createChanges({ root, words, audio, getStage, director }) {
   alt.addEventListener('click', () => { setView('setup'); renderSetup(); });
   $('.ex-exit').addEventListener('click', () => director.exit());
 
-  function nextName(after) {
-    if (cfg.order === 'loop') return cfg.pool[(cfg.pool.indexOf(after) + 1) % cfg.pool.length];
-    const pool = cfg.pool.filter((n) => n !== after);
-    return pool[Math.floor(Math.random() * pool.length)];
+  // where we are in the chord list (a song can repeat chords, so by position, not by name)
+  let pos = 0;
+  function nextPos(p) {
+    if (cfg.order === 'loop') {
+      let q = (p + 1) % cfg.pool.length;
+      // the same chord twice in a row is no change: skip ahead
+      for (let k = 0; k < cfg.pool.length && cfg.pool[q] === cfg.pool[p]; k++) q = (q + 1) % cfg.pool.length;
+      return q;
+    }
+    const opts = cfg.pool.map((n, i) => i).filter((i) => cfg.pool[i] !== cfg.pool[p]);
+    return opts[Math.floor(Math.random() * opts.length)] ?? 0;
   }
+  const nextName = () => cfg.pool[nextPos(pos)];
 
   async function start() {
     try { mic = await openMic(32768); } catch { $('.ch-last').textContent = words.denied; return; }
@@ -165,7 +207,9 @@ export function createChanges({ root, words, audio, getStage, director }) {
     audio.duck(true);
     strums = E.Timing.strumDetector(mic.sampleRate);
     changes = []; wrongHeard = 0; lastWrong = ''; landSnap = null;
-    target = cfg.order === 'loop' ? cfg.pool[0] : cfg.pool[Math.floor(Math.random() * cfg.pool.length)];
+    pos = cfg.order === 'loop' ? 0 : Math.floor(Math.random() * cfg.pool.length);
+    target = cfg.pool[pos];
+    extras = [...new Set(cfg.pool)].map(shapeOf).filter((x) => x && !E.Chords.LIBRARY.includes(x));
     prevName = ''; started = false; activeSec = 0;
     jobs = []; running = true; paused = false;
     lastTick = lastSoundAt = ctx.currentTime; nextSteady = 0; holdOff = 0;
@@ -249,6 +293,12 @@ export function createChanges({ root, words, audio, getStage, director }) {
     const P = profile();
     const tgt = shapeOf(target), prev = prevName ? shapeOf(prevName) : null;
     if (E.Sound.rms(buf) < 0.003) return false;
+    // a chord the app doesn't know yet (not taught): it can't be checked, so any strum moves on
+    if (!tgt) {
+      if (steady) return false;
+      land(t, [], null, true);
+      return true;
+    }
     let ref = before;
     if (steady) {
       if (started && ctx.currentTime - lastLandAt < 0.8) return false;
@@ -278,21 +328,21 @@ export function createChanges({ root, words, audio, getStage, director }) {
   function verdict(h, tgt, prev, P, steady) {
     const fT = E.Chords.fit(h, tgt);
     const fP = prev ? E.Chords.fit(h, prev) : -9;
-    const top = E.Chords.recognize(h)[0];
+    const top = rank(E, h, extras)[0];
     const isIt = top.shape === tgt || top.shape.chord === tgt.chord || fT >= top.score - P.drill.rank;
     // the backup check (no strum) is stricter, so a fading old chord can't count
     const ok = isIt && fT >= (steady ? 0.4 : 0.25) && fT > fP + P.drill.margin;
     return { ok, heard: top.score >= 0.3 ? top.shape.name : '' };
   }
 
-  function land(t, problems, strings) {
+  function land(t, problems, strings, unchecked = false) {
     const now = ctx.currentTime;
     if (!started) {
       started = true;
       setStatus(`${words.go}`, 'ok');
     } else {
       const sec = Math.max(0, t - lastLandAt);
-      changes.push({ from: prevName, to: target, sec, problems });
+      changes.push({ from: prevName, to: target, sec, problems, unchecked });
       setStatus(problems.length ? `${prevName} → ${target} · ${sec.toFixed(1)} s · ${problems[0]}` : `✓ ${prevName} → ${target} · ${sec.toFixed(1)} s`, problems.length ? 'meh' : 'ok');
       bus.emit('flash', problems.length ? 0.15 : 0.3);
       drawHist();
@@ -300,11 +350,12 @@ export function createChanges({ root, words, audio, getStage, director }) {
     lastLandAt = t;
     lastWrong = '';
     prevName = target;
-    target = nextName(target);
+    pos = nextPos(pos);
+    target = cfg.pool[pos];
     holdOff = now + 0.15;                       // the same strum can't count twice
     // the strings show how that chord rang (amber clean / red problem) until the next one lands
     const g = g3();
-    if (g) for (let i = 0; i < 6; i++) g.setTint(i, strings ? strings[i] : 'ok');
+    if (g) for (let i = 0; i < 6; i++) g.setTint(i, strings ? strings[i] : null);
     landSnap = mic.buffer.slice(mic.buffer.length - WIN);
     showTarget(); drawRing();
   }
@@ -320,8 +371,10 @@ export function createChanges({ root, words, audio, getStage, director }) {
     if (!changes.length) { setView('setup'); renderSetup(); return; }
     const mins = Math.max(activeSec, 1) / 60;
     const perMin = Math.round(changes.length / mins);
-    const clean = changes.filter((c) => !c.problems.length).length;
-    const cleanPct = Math.round((clean / changes.length) * 100);
+    // changes into a chord the app can't check (not taught) count for speed, not for "clean"
+    const checked = changes.filter((c) => !c.unchecked);
+    const clean = checked.filter((c) => !c.problems.length).length;
+    const cleanPct = checked.length ? Math.round((clean / checked.length) * 100) : 100;
     const avg = changes.reduce((s, c) => s + c.sec, 0) / changes.length;
     // slowest change (by pair, average)
     const byPair = {};
@@ -333,13 +386,15 @@ export function createChanges({ root, words, audio, getStage, director }) {
     const topIssues = Object.entries(issues).sort((a, b) => b[1] - a[1]).slice(0, 3);
     const key = poolKey();
     const prev = lastResult(key);
-    const name = cfg.pool.join(cfg.order === 'loop' ? ' → ' : ' · ');
+    const name = cfg.song ? `♪ ${cfg.song.title}` : cfg.pool.join(cfg.order === 'loop' ? ' → ' : ' · ');
     addLog({
       exercise: 'chord-changes', title: 'Chord changes', chords: cfg.pool.slice(),
       score: {
         changesPerMin: perMin, changes: changes.length, clean, cleanPct, avgSec: Number(avg.toFixed(2)), order: cfg.order, key,
         slowest: pairAvg[0] ? { pair: pairAvg[0][0], sec: Number(pairAvg[0][1].toFixed(2)) } : null, issues, wrongHeard,
         pairs: Object.fromEntries(pairAvg.map(([k, v]) => [k, Number(v.toFixed(2))])),   // avg seconds per pair, either direction
+        ...(cfg.song ? { song: cfg.song.title, songId: cfg.song.id } : {}),
+        ...(checked.length < changes.length ? { unchecked: changes.length - checked.length } : {}),
         ...(partial ? { partial: true } : {}),
       },
       summary: `${name}${cfg.order === 'random' ? ' (random)' : ''}: ${perMin} changes/min, ${cleanPct}% clean, avg ${avg.toFixed(1)} s${prev ? ` (prev ${prev.score.changesPerMin})` : ''}${partial ? ` · partial, ${Math.round(activeSec)} s` : ''}`,
@@ -350,7 +405,8 @@ export function createChanges({ root, words, audio, getStage, director }) {
     $('.ch-sum-name').textContent = `${name} · ${cfg.order === 'loop' ? words.loop : words.random}`;
     $('.ch-compare').textContent = partial ? `${words.partial} (${Math.round(activeSec)} s)`
       : prev ? (perMin > prev.score.changesPerMin ? `${words.upFrom} ${prev.score.changesPerMin}` : `${words.lastTime} ${prev.score.changesPerMin}`) : words.baseline;
-    const lines = [`${clean} / ${changes.length} ${words.cleanChanges} (${cleanPct}%)`, `${words.avgChange} ${avg.toFixed(1)} s`];
+    const lines = [`${clean} / ${checked.length} ${words.cleanChanges} (${cleanPct}%)`, `${words.avgChange} ${avg.toFixed(1)} s`];
+    if (checked.length < changes.length) lines.push(`${changes.length - checked.length} ${words.uncheckedChanges}`);
     if (pairAvg.length > 1) lines.push(`${words.slowest}: ${pairAvg[0][0]} · ${pairAvg[0][1].toFixed(1)} s`);
     topIssues.forEach(([k, n]) => lines.push(`${k} ×${n}`));
     if (wrongHeard) lines.push(`${wrongHeard} ${words.wrongChords}`);
@@ -369,12 +425,14 @@ export function createChanges({ root, words, audio, getStage, director }) {
     tEl.textContent = target;
     tEl.classList.toggle('is-long', target.length > 3);
     tEl.classList.remove('is-pop'); void tEl.offsetWidth; tEl.classList.add('is-pop');
-    $('.ch-next').textContent = cfg.order === 'loop' ? `${words.then} ${nextName(target)}` : words.randomNext;
+    $('.ch-next').textContent = cfg.order === 'loop' ? `${words.then} ${nextName()}` : words.randomNext;
     $('.ch-count').textContent = `${changes.length} ${words.changesWord}`;
     showChord(target);
   }
   function drawRing() {
-    $('.ch-ring').innerHTML = cfg.pool.map((n) => `<span class="${n === target ? 'is-cur' : ''}">${esc(n)}</span>`).join('');
+    // a long song: show a window of the sequence around where you are
+    const n = cfg.pool.length, from = n > 8 ? Math.max(0, Math.min(pos - 2, n - 8)) : 0;
+    $('.ch-ring').innerHTML = cfg.pool.slice(from, from + 8).map((c, i) => `<span class="${from + i === pos ? 'is-cur' : ''}${E && !shapeOf(c) ? ' is-unknown' : ''}">${esc(c)}</span>`).join('');
   }
   function drawHist() {
     $('.ch-hist').innerHTML = changes.map((c) => `<i class="${c.problems.length ? 'meh' : 'ok'}"></i>`).join('');

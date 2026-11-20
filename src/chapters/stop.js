@@ -4,7 +4,7 @@
 import { tag, title, esc, entrance, fitTitle } from './common.js';
 import { bus } from '../core/state.js';
 
-const card = (k) => {
+export const card = (k) => {
   const inner = `
     <span class="card-code">${esc(k.code)}</span>
     <span class="card-txt"><b>${esc(k.name)}</b><span>${esc(k.line)}</span></span>

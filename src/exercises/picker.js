@@ -4,7 +4,11 @@
 //   picker.chords({ title, value, library, auto })   chord chart: one row per root note,
 //                                                    one column per chord type
 //   picker.chords({ …, multi: true, value: [names] })  tap several, in order → array (Done)
+//   picker.chords({ …, more: [{ label, shapes }], other: true })  + groups of extra chords under
+//        the chart, and a field to type any other chord name (resolves with the typed name)
 //   picker.list({ title, value, tabs })              tabs on top, slim one-line rows below
+//   picker.sheet(title, html)                        any content; resolves with a [data-v] tapped,
+//        or picker.done(value) from your own code. picker.body = the content element.
 //        tabs: [{ id, label, rows: [{ value, label, sub, accent }] }]
 
 import { esc } from '../chapters/common.js';
@@ -55,15 +59,24 @@ export function createPicker(host) {
     document.removeEventListener('keydown', onKey, true);
     d(v);
   }
-  function onKey(e) { if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); close(null); } }
+  function onKey(e) {
+    if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); close(null); }
+    if (e.key === 'Enter' && e.target.closest && e.target.closest('.pk-other')) { e.preventDefault(); body.querySelector('.pk-other-go').click(); }
+  }
   el.querySelector('.pk-x').addEventListener('click', () => close(null));
   body.addEventListener('click', (e) => {
     const tab = e.target.closest('[data-tab]');
     if (tab) { showTab(tab.dataset.tab); return; }
     if (e.target.closest('.pk-clear')) { multi.length = 0; paintMulti(); return; }
     if (e.target.closest('.pk-done')) { if (multi.length >= 2) close(multi.slice()); return; }
+    if (e.target.closest('.pk-other-go')) {
+      const inp = body.querySelector('.pk-other input');
+      const v = inp && inp.value.trim();
+      if (v) close(v);
+      return;
+    }
     const b = e.target.closest('[data-v]');
-    if (!b) return;
+    if (!b || b.disabled) return;
     if (multi) {
       const i = multi.indexOf(b.dataset.v);
       if (i >= 0) multi.splice(i, 1); else multi.push(b.dataset.v);
@@ -101,8 +114,8 @@ export function createPicker(host) {
   }
 
   // ── chord chart ──
-  function chords({ title, value, library, auto = null, multi: many = false }) {
-    const cur = many ? null : library.find((c) => c.name === value);
+  function chords({ title, value, library, auto = null, multi: many = false, more = [], other = false }) {
+    const cur = many ? null : [...library, ...more.flatMap((g) => g.shapes)].find((c) => c.name === value);
     const cell = (shapes) => {
       if (!shapes.length) return '<i class="pk-empty">·</i>';
       return shapes.map((c) => `<button type="button" class="pk-c${c.name === value ? ' is-cur' : ''}${c.isBarre ? ' is-barre' : ''}" data-v="${esc(c.name)}" aria-label="${esc(c.name)}">${esc(c.isBarre && c.name.includes(' ') ? c.chord : c.name)}</button>`).join('');
@@ -116,6 +129,12 @@ export function createPicker(host) {
         <span></span>${TYPES.map(([, t]) => `<span class="pk-type">${t}</span>`).join('')}
         ${rows}
       </div>
+      ${more.filter((g) => g.shapes.length).map((g) => `
+        <p class="pk-group">${esc(g.label)}</p>
+        <div class="pk-chips">${g.shapes.map((c) => `<button type="button" class="pk-c${c.name === value ? ' is-cur' : ''}${c.isBarre ? ' is-barre' : ''}" data-v="${esc(c.name)}">${esc(c.name)}</button>`).join('')}</div>`).join('')}
+      ${other ? `<p class="pk-group">${esc(other.label || 'Other chord')}</p>
+        <div class="pk-other"><input type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="14" placeholder="${esc(other.placeholder || 'e.g. Bbmaj9')}"><button type="button" class="pk-other-go">${esc(other.add || 'Add')}</button></div>
+        ${other.note ? `<p class="pk-note">${esc(other.note)}</p>` : ''}` : ''}
       ${many ? '<p class="pk-order"></p><div class="pk-multi"><button type="button" class="pk-clear">Clear</button><button type="button" class="pk-done"></button></div>' : ''}
       <p class="pk-foot"><span class="pk-key"><i></i> barre</span>${cur ? `<span class="pk-now">${miniDiagram(cur)}<b>${esc(cur.name)}</b></span>` : many ? '<span class="pk-key">tap in the order you want</span>' : ''}</p>`);
     if (many) { multi = (Array.isArray(value) ? value : []).slice(); paintMulti(); }
@@ -136,5 +155,8 @@ export function createPicker(host) {
     return p;
   }
 
-  return { chords, list, close: () => close(null), get isOpen() { return !!done; } };
+  // ── any content ──
+  function sheet(title, html) { return show(title, html); }
+
+  return { chords, list, sheet, done: (v) => close(v), close: () => close(null), body, get isOpen() { return !!done; } };
 }

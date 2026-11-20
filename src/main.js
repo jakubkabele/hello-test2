@@ -32,6 +32,8 @@ import { createChanges } from './exercises/changes.js';
 import { createFindNote } from './exercises/findnote.js';
 import { createSensitivity } from './exercises/sensitivity.js';
 import { createLog } from './exercises/log.js';
+import { createSongs } from './exercises/songs.js';
+import { createSession } from './exercises/session.js';
 import * as halt from './exercises/halt.js';
 import { level as sensLevel } from './exercises/ear.js';
 
@@ -110,7 +112,9 @@ createChanges({ root: host, words: content.ex.changes, audio, getStage: () => st
 createKeepTime({ root: host, words: content.ex.keeptime, audio, getStage: () => stage, director });
 createFindNote({ root: host, words: content.ex.findnote, audio, getStage: () => stage, director });
 createSensitivity({ root: host, words: content.ex.sensitivity, audio, getStage: () => stage, director });
-createLog({ root: host, words: content.ex.log, getStage: () => stage, director });
+createLog({ root: host, words: content.ex.log, audio, getStage: () => stage, director });
+createSongs({ root: host, words: content.ex.songs, audio, getStage: () => stage, director });
+createSession({ root: host, words: content.ex.session, audio, getStage: () => stage, director });
 halt.setWords(content.ex.halt);
 layout();
 director.measure();

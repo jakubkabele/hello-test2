@@ -244,7 +244,44 @@ Built:
 - Not tested on the real phone: red alert feel, amp close-up readability, log scrolling with a thumb.
 - Barre chords still show as single dots on the neck.
 
+## 2026-11-20 (cont.) — features in the new style: songs, chord memory, today's session, export
+
+### Kuba
+- Liked the finished redesign. Wanted everything "coming soon" finished. Songs: add **manually only** for now;
+  "from my own sources" (screenshots, mp3, mp4) and "from the internet" (song + band + link) later, with **Gemini**
+  (it takes video/audio/YouTube directly; free tier key) instead of Claude. Session: pick the length before starting.
+  Barre chords: a line across the fretboard. Stage becomes a **Sandbox** later (composer, synth, backing tracks).
+
+### What we built
+- **Chord memory** (`chordbook.js`): +88 chords (power, 6, add9, 9, dim, aug, m7♭5, slash, B♭/C#m/Fm/F# … barre) and
+  **teach a chord**: tap the fret on each string once → the app hears and checks it like its own. Untaught chords stay
+  "not checked" (any strum moves on). Extra chords only take part when an exercise asks for them, so blind recognition
+  of everyday chords is unchanged. Flats/sharps and spellings (Bb = A#, Amin = Am) all work.
+- **Barre line**: the 3D neck draws a bar across the strings for barre chords (F, Bm, B, F#m, G barre …).
+- **Songs** (amp, SYS-02): your list (seeded with the goal songs, names only), song page with sections and chord chips,
+  editor (title, artist, sections Verse/Chorus/…, chords from the chart, "More chords", or typed), Play the changes
+  (Chord changes in song order, repeats allowed, results kept per song), Hardest change. Add-song menu shows the two
+  Gemini options as "soon". Chord changes: "From a song" button works; long songs show a moving window of the sequence.
+- **Today's session** (first screen card → stage podium): pick 20 / 45 / 60 min → setlist from the log (tune; clean
+  check of the weakest chord; slowest change ×3–4; next level once a change hits 30/min, else second-slowest; Find the
+  note; Keep time +5 BPM after 90 %; least-played song or a progression). Each step opens set up, results come back as
+  one line, Skip / Again / End, kept for the day. Done → copy today for a coach.
+- **Log export** (pedal): "Copy for coach" → Today / Last 7 days / Everything → Markdown → share sheet or clipboard.
+- **Sandbox** stop replaces "Coming soon".
+
+### Tests (cloud)
+- Chord shapes: all 88 contain exactly the right notes (theory check); 10 new chords strummed (synthetic) → each
+  recognised as itself; a plain C is not accepted as Cadd9.
+- Songs flow in the browser: add manually, chart chord, "More" chord, typed unknown → teach grid → saved, unknown left
+  unchecked; Play → Chord changes opens with the song. Session: plan from a seeded week, steps open set up (F clean
+  check, Am ↔ F changes), results counted, back to setlist, end, export. Export Markdown checked. 390×844, 360×680,
+  1440×900, no console errors.
+
+### Open
+- Real guitar: new chords through the phone mic; taught chords; Chord changes with a song that has unchecked chords.
+- Session time estimates (≈4 min per 1-minute round incl. rest) — adjust after Kuba's first real sessions.
+
 ## Next step
-1. Kuba looks at the finished redesign on the preview → decide **go live** (merge into `main`).
-2. Then features, built in the new style: **Songs** (save a song's chords → Chord changes runs them in order),
-   **Today's session** + **Markdown export** (the log already has the numbers per pair).
+1. Kuba tries songs (add a real one), today's session and the export on the phone → fixes.
+2. **Gemini** for adding songs (own sources + internet): Kuba makes a Google AI Studio key → Vercel env var → `/api` function.
+3. Sandbox (composer, synth, backing tracks). 4. Go live when Kuba says so.

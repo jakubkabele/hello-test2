@@ -79,11 +79,23 @@ export const SHOTS = [
     win: { m: [0.45, 0.16, 0.49, 0.35], d: [0.34, 0.15, 0.2, 0.6] },
     fit: { m: 2.35, d: 3.6 }, rot: [-16, 0, 0], spin: 0,
   },
+  // today's session: the guitar on the podium, spotlights up
+  {
+    ex: 'session', ch: 'hero', anchor: 'center',
+    win: { m: [0.6, 0.165, 0.33, 0.19], d: [0.62, 0.14, 0.16, 0.3] },
+    fit: { m: 0.3, d: 0.5 }, rot: [0, -24, 0], spin: 0, stage: 1,
+  },
   // the amp's control panel: the five knobs are the five sensitivity levels
   {
     ex: 'sensitivity', ch: 'amp', anchor: 'amppanel',
     win: { m: [0.06, 0.15, 0.88, 0.17], d: [0.3, 0.14, 0.4, 0.22] },
     fit: { m: 1.0, d: 1.4 }, rot: [0, 10, 0], spin: 0,
+  },
+  // the amp, from the side: your songs list sits beside it
+  {
+    ex: 'songs', ch: 'amp', anchor: 'amp',
+    win: { m: [0.6, 0.165, 0.33, 0.19], d: [0.62, 0.14, 0.16, 0.3] },
+    fit: { m: 0.62, d: 0.9 }, rot: [4, -38, 0], spin: 0,
   },
   // the recorder pedal, close: its tape reels spin while the log is open
   {

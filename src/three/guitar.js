@@ -592,6 +592,11 @@ export async function loadGuitar({ modelUrl = null } = {}) {
     [dot, open, muted].forEach((o) => { o.visible = false; marks.add(o); });
     chordMarks.push({ dot, open, muted, k: 0 });
   }
+  // the barre: one bar across the strings where the index finger lies flat
+  const barGeo = new THREE.PlaneGeometry(1, 1);
+  const barMark = new THREE.Mesh(barGeo, dotMat);
+  barMark.visible = false;
+  marks.add(barMark);
   const liveMark = new THREE.Mesh(new THREE.RingGeometry(0.046, 0.06, 24), new THREE.MeshBasicMaterial({ color: PALETTE.amber }));
   liveMark.visible = false;
   marks.add(liveMark);
@@ -600,12 +605,22 @@ export async function loadGuitar({ modelUrl = null } = {}) {
   const markZ = G.STRING_Z + 0.03;
   let chordPop = 0;
 
+  // frets: per string, 'x' = don't play; frets.barre = { fret, from, to } draws a bar across
   function setChord(frets) {
     chordPop = 1;
+    const bar = frets && frets.barre;
+    barMark.visible = !!bar;
+    if (bar) {
+      const y = noteY(bar.fret);
+      const x0 = stringX(bar.from, y), x1 = stringX(bar.to, y);
+      barMark.position.set((x0 + x1) / 2, y, markZ);
+      barMark.scale.set(Math.abs(x1 - x0) + 0.07, 0.05, 1);
+    }
     chordMarks.forEach((m, i) => {
       const f = frets ? frets[i] : null;
       m.dot.visible = m.open.visible = m.muted.visible = false;
       if (f === null || f === undefined) return;
+      if (bar && f === bar.fret && i >= bar.from && i <= bar.to) return;   // covered by the bar
       const which = f === 'x' ? m.muted : f === 0 ? m.open : m.dot;
       const fr = f === 'x' ? 0 : f;
       which.visible = true;
@@ -707,6 +722,7 @@ export async function loadGuitar({ modelUrl = null } = {}) {
       chordPop = Math.max(0, chordPop - dt * 4);
       const k = 1 + chordPop * 0.9;
       chordMarks.forEach((m) => { m.dot.scale.setScalar(k); m.open.scale.setScalar(k); });
+      if (barMark.visible) barMark.scale.y = 0.05 * k;
     }
     if (liveMark.visible) liveMark.rotation.z += dt * 2;
     pegs.forEach((pg, i) => { pg.rotation.x += (pegTarget[i] - pg.rotation.x) * Math.min(1, dt * 8); });
