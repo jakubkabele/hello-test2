@@ -104,18 +104,25 @@ async function callGemini(key, body) {
 }
 
 // ── the handler ──
+// The key's name in Vercel: GEMINI_API_KEY (GOOGLE_API_KEY also works — Google's own tools use it).
+const keyFromEnv = () => (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '').trim();
+// For the status page when the key isn't found: names (never values) of settings that look like a key,
+// so a typo in the name is easy to spot, and which Vercel environment this is (production / preview).
+const lookalikes = () => Object.keys(process.env).filter((n) => /GEMINI|GOOGLE|API_?KEY/i.test(n) && !/^VERCEL|^NOW_/i.test(n)).slice(0, 10);
+
 export default async function handler(req, res) {
-  const key = process.env.GEMINI_API_KEY;
+  const key = keyFromEnv();
 
   if (req.method === 'GET') {
     if (!('status' in (req.query || {}))) return send(res, 404, { error: 'bad' });
-    if (!key) return send(res, 200, { key: 'missing', works: null });
+    const env = process.env.VERCEL_ENV || 'unknown';
+    if (!key) return send(res, 200, { key: 'missing', works: null, env, lookingFor: 'GEMINI_API_KEY', similarNames: lookalikes() });
     // ask Google whether it accepts the key (lists models; costs nothing)
     try {
       const r = await fetch(`${API}/models?pageSize=1`, { headers: { 'x-goog-api-key': key } });
-      return send(res, 200, { key: 'found', works: r.ok, code: r.status, model: MODELS[0] });
+      return send(res, 200, { key: 'found', works: r.ok, code: r.status, env, model: MODELS[0] });
     } catch {
-      return send(res, 200, { key: 'found', works: null, model: MODELS[0] });
+      return send(res, 200, { key: 'found', works: null, env, model: MODELS[0] });
     }
   }
   if (req.method !== 'POST') return send(res, 405, { error: 'bad' });
