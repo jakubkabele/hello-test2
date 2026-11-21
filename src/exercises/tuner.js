@@ -8,9 +8,23 @@
 
 import { S, bus, clamp } from '../core/state.js';
 import { esc } from '../chapters/common.js';
+import { createPicker } from './picker.js';
+import { TUNINGS, tuningOf, openMidi } from './chordbook.js';
 
-const OPEN_HZ = [82.41, 110.0, 146.83, 196.0, 246.94, 329.63];
-const NAMES = ['E', 'A', 'D', 'G', 'B', 'E'];
+// The open strings to tune to — standard, or another tuning (Drop D, Drop C …) chosen here or
+// handed over by a song's riff. Saved on this device.
+const TKEY = 'site.tuner.tuning';
+const NOTE = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
+let tuningId = (() => { try { return localStorage.getItem(TKEY) || 'standard'; } catch { return 'standard'; } })();
+let OPEN_HZ = [], NAMES = [];
+function applyTuning(id) {
+  tuningId = tuningOf(id).id;
+  try { localStorage.setItem(TKEY, tuningId); } catch { /* blocked */ }
+  const m = openMidi(tuningId);
+  OPEN_HZ = m.map((x) => 440 * Math.pow(2, (x - 69) / 12));
+  NAMES = m.map((x) => NOTE[x % 12]);
+}
+applyTuning(tuningId);
 // "in tune" window per sensitivity level 1–5 (same numbers as the old tuner)
 const IN_TUNE = [8, 6, 5, 4, 3];
 
@@ -28,7 +42,7 @@ function saveLog(names, secs) {
       date: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
       exercise: 'tuner', title: 'Tuner', chords: [],
       score: { inTune: names.length },
-      summary: names.length ? `Tuned ${names.length} of 6 strings` : 'Tuned up',
+      summary: (names.length ? `Tuned ${names.length} of 6 strings` : 'Tuned up') + (tuningId !== 'standard' ? ` (${tuningOf(tuningId).name})` : ''),
       activeSec: Math.round(secs),
     };
     list.push(entry);
@@ -49,6 +63,7 @@ export function createTuner({ root, words, liveLink, audio, focus, getStage, dir
       <span class="tn-side"><span class="tn-cents">&nbsp;</span><span class="tn-msg">${esc(words.idle)}</span></span>
     </div>
     <div class="tn-meter" aria-hidden="true"><i class="tn-zone"></i><i class="tn-needle"></i></div>
+    <button type="button" class="pick tn-tuning"><span>${esc(words.tuning)}</span><b></b></button>
     <div class="tn-strings" role="group" aria-label="String">
       <button type="button" data-s="-1" class="is-on">AUTO</button>
       ${NAMES.map((n, i) => `<button type="button" data-s="${i}"><b>${n}</b><i></i></button>`).join('')}
@@ -58,6 +73,19 @@ export function createTuner({ root, words, liveLink, audio, focus, getStage, dir
   const $ = (q) => el.querySelector(q);
   const note = $('.tn-note'), cents = $('.tn-cents'), msg = $('.tn-msg'), needle = $('.tn-needle'), zone = $('.tn-zone'), go = $('.ex-go');
   const sbtns = [...el.querySelectorAll('.tn-strings button')];
+  const picker = createPicker(el);
+  function paintTuning() {
+    const t = tuningOf(tuningId);
+    $('.tn-tuning b').textContent = t.name;
+    sbtns.forEach((b) => { const i = +b.dataset.s; if (i >= 0) b.querySelector('b').textContent = NAMES[i]; });
+  }
+  function setTuning(id) { applyTuning(id); tuned.clear(); sbtns.forEach((b) => b.classList.remove('is-done')); paintTuning(); if (pick >= 0) note.textContent = NAMES[pick]; }
+  $('.tn-tuning').addEventListener('click', async () => {
+    const v = await picker.list({ title: words.tuning, value: tuningId, tabs: [{ id: 't', label: words.tuning, rows: TUNINGS.map((t) => ({ value: t.id, label: t.name, sub: t.notes })) }] });
+    if (v) setTuning(v);
+  });
+  // a song's riff asks for its tuning
+  bus.on('tuner:tuning', (id) => setTuning(id || 'standard'));
 
   let open = false, listening = false, pick = -1, cur = -1;
   let shown = 0;                 // smoothed cents on the needle
@@ -150,9 +178,10 @@ export function createTuner({ root, words, liveLink, audio, focus, getStage, dir
     open = true; cur = -1; tuned.clear(); hist.length = 0;
     sbtns.forEach((b) => b.classList.remove('is-done', 'is-cur'));
     note.textContent = '·'; cents.innerHTML = '&nbsp;'; needle.style.transform = ''; setMsg(words.idle);
+    paintTuning();
     el.classList.add('is-open');
   });
-  bus.on('ex:leave', (n) => { if (n === 'tuner') { stop(); open = false; el.classList.remove('is-open'); } });
+  bus.on('ex:leave', (n) => { if (n === 'tuner') { stop(); open = false; picker.close(); el.classList.remove('is-open'); } });
   document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); });
   return { el };
 }

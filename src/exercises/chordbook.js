@@ -146,13 +146,37 @@ export function rank(E, h, extra = []) {
   return list.map((shape) => ({ shape, score: E.Chords.fit(h, shape) })).sort((a, b) => b.score - a.score);
 }
 
-// A capo on fret n: every played string sounds n frets higher, so the same shape gives other notes.
-// The shape's name stays (you still play "G"), but its frets and notes move up — that's what gets heard.
-export function withCapo(shape, capo) {
-  if (!shape || !capo) return shape;
+// ── tunings ──
+// offsets = how many semitones each string (low E → high e) is tuned away from standard.
+export const TUNINGS = [
+  { id: 'standard', name: 'Standard', notes: 'E A D G B E', offsets: [0, 0, 0, 0, 0, 0] },
+  { id: 'halfDown', name: 'Half step down', notes: 'E♭ A♭ D♭ G♭ B♭ E♭', offsets: [-1, -1, -1, -1, -1, -1] },
+  { id: 'wholeDown', name: 'D standard', notes: 'D G C F A D', offsets: [-2, -2, -2, -2, -2, -2] },
+  { id: 'dropD', name: 'Drop D', notes: 'D A D G B E', offsets: [-2, 0, 0, 0, 0, 0] },
+  { id: 'dropCs', name: 'Drop C♯', notes: 'C♯ G♯ C♯ F♯ A♯ D♯', offsets: [-3, -1, -1, -1, -1, -1] },
+  { id: 'dropC', name: 'Drop C', notes: 'C G C F A D', offsets: [-4, -2, -2, -2, -2, -2] },
+  { id: 'cStandard', name: 'C standard', notes: 'C F A♯ D♯ G C', offsets: [-4, -4, -4, -4, -4, -4] },
+  { id: 'dropB', name: 'Drop B', notes: 'B F♯ B E G♯ C♯', offsets: [-5, -3, -3, -3, -3, -3] },
+  { id: 'openG', name: 'Open G', notes: 'D G D G B D', offsets: [-2, -2, 0, 0, 0, -2] },
+  { id: 'openD', name: 'Open D', notes: 'D A D F♯ A D', offsets: [-2, 0, 0, -1, -2, -2] },
+  { id: 'dadgad', name: 'DADGAD', notes: 'D A D G A D', offsets: [-2, 0, 0, 0, -2, -2] },
+];
+export const tuningOf = (id) => TUNINGS.find((t) => t.id === id) || TUNINGS[0];
+// the note (midi) each open string gives in a tuning
+export const openMidi = (id) => tuningOf(id).offsets.map((o, s) => OPEN_MIDI[s] + o);
+
+// A capo on fret n and/or another tuning: the same shape gives other notes. The shape's name and
+// frets stay what you play ("G" with capo 2); the notes it should give (what gets heard) move.
+// For the 3D neck the frets shift up by the capo.
+export function withSetup(shape, { capo = 0, tuning = 'standard' } = {}) {
+  const off = tuningOf(tuning).offsets;
+  if (!shape || (!capo && off.every((o) => !o))) return shape;
   const frets = shape.frets.map((f) => (f < 0 ? -1 : f + capo));
-  return { ...makeShape(shape.name, frets), name: shape.name, capo, taught: shape.taught, more: shape.more };
+  const sh = { ...makeShape(shape.name, frets), name: shape.name, capo, tuning, taught: shape.taught, more: shape.more };
+  sh.midi = frets.map((f, s) => (f < 0 ? -1 : OPEN_MIDI[s] + off[s] + f));
+  return sh;
 }
+export const withCapo = (shape, capo) => withSetup(shape, { capo });
 
 // what the 3D neck draws: frets ('x' = don't play) + the barre, if any
 export function neck(shape) {

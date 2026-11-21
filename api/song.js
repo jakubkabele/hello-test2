@@ -32,9 +32,18 @@ const SCHEMA = {
     capo: { type: 'INTEGER' },
     bpm: { type: 'INTEGER' },
     key: { type: 'STRING' },
+    tuning: { type: 'STRING' },
     sections: {
       type: 'ARRAY',
-      items: { type: 'OBJECT', properties: { name: { type: 'STRING' }, chords: { type: 'ARRAY', items: { type: 'STRING' } } }, required: ['name', 'chords'] },
+      items: {
+        type: 'OBJECT',
+        properties: {
+          name: { type: 'STRING' },
+          chords: { type: 'ARRAY', items: { type: 'STRING' } },
+          notes: { type: 'ARRAY', items: { type: 'OBJECT', properties: { string: { type: 'INTEGER' }, fret: { type: 'INTEGER' } }, required: ['string', 'fret'] } },
+        },
+        required: ['name'],
+      },
     },
     unsure: { type: 'ARRAY', items: { type: 'STRING' } },
     notes: { type: 'STRING' },
@@ -42,13 +51,20 @@ const SCHEMA = {
   required: ['title', 'sections'],
 };
 
-const RULES = `You turn guitar song material into a chord chart for a practice app.
+const TUNING_IDS = ['standard', 'halfDown', 'wholeDown', 'dropD', 'dropCs', 'dropC', 'cStandard', 'dropB', 'openG', 'openD', 'dadgad'];
+const RULES = `You turn guitar song material into a chord chart and tab for a practice app.
 Answer with JSON only, in this shape:
 {"title": string, "artist": string, "capo": integer (0 if none), "bpm": integer or 0 if unknown, "key": string or "",
- "sections": [{"name": "Intro|Verse|Pre-chorus|Chorus|Bridge|Solo|Riff|Outro", "chords": ["Am", "F", ...]}],
+ "tuning": one of ${TUNING_IDS.join(' | ')} (standard = E A D G B E, halfDown = Eb, wholeDown = D standard, dropD, dropCs = Drop C#, dropC, cStandard, dropB, openG, openD, dadgad),
+ "sections": [ chord sections: {"name": "Intro|Verse|Pre-chorus|Chorus|Bridge|Outro", "chords": ["Am", "F", ...]},
+               riff / solo sections as TAB: {"name": "Riff|Intro riff|Solo|Lick|Outro riff", "notes": [{"string": 1-6, "fret": 0-24}, ...]} ],
  "unsure": [chord names you are not sure about], "notes": one or two short sentences}
-Rules:
-- Chord symbols ONLY. Never include lyrics or any words from the lyrics.
+Tab rules:
+- Include the song's main riff(s) and solo as single notes in playing order: "string" 6 = low (thickest) string … 1 = high e, "fret" as written in the tab for the song's own tuning.
+- Notes played together (a power chord, a double stop): list them low string first. Bends/slides/hammer-ons: just the fretted notes.
+- At most 64 notes per riff section and 6 riff sections; for a long solo give its main phrase and say so in "notes".
+Chord rules:
+- Chords and tab ONLY. Never include lyrics or any words from the lyrics.
 - Standard chord names: C, Am, F#m7, Bb, Ebmaj7, Cadd9, Dsus4, G/B, E5, Bdim, Bm7b5.
 - Chords in playing order. Each section once per time it is played (Verse, Chorus, Verse, Chorus …), at most 24 sections.
   Within a section list each chord change once (do not repeat a chord for every bar unless it really changes back).
@@ -68,13 +84,26 @@ const CHORD = /^[A-G][#b♯♭]?[a-zA-Z0-9#b♭♯+°ø()\-]{0,9}(\/[A-G][#b♯�
 // keep only what the app needs, in safe sizes
 export function cleanSong(raw) {
   const s = raw && typeof raw === 'object' ? raw : {};
-  const sections = (Array.isArray(s.sections) ? s.sections : []).slice(0, 24).map((x) => ({
-    name: clip(x && x.name, 20) || 'Verse',
-    chords: (Array.isArray(x && x.chords) ? x.chords : []).map((c) => clip(c, 12).replace(/♯/g, '#').replace(/♭/g, 'b')).filter((c) => CHORD.test(c)).slice(0, 48),
-  })).filter((x) => x.chords.length);
+  let tabs = 0;
+  const sections = (Array.isArray(s.sections) ? s.sections : []).slice(0, 30).map((x) => {
+    const name = clip(x && x.name, 20) || 'Verse';
+    const rawNotes = Array.isArray(x && x.notes) ? x.notes : [];
+    if (rawNotes.length) {
+      // tab: string 6 = low E … 1 = high e  →  the app's string index 0 = low E … 5 = high e
+      const notes = rawNotes.map((n) => ({ st: Math.round(Number(n && n.string)), f: Math.round(Number(n && n.fret)) }))
+        .filter((n) => n.st >= 1 && n.st <= 6 && n.f >= 0 && n.f <= 24).slice(0, 64).map((n) => ({ s: 6 - n.st, f: n.f }));
+      if (notes.length && tabs < 6) { tabs++; return { name, notes }; }
+      return null;
+    }
+    return {
+      name,
+      chords: (Array.isArray(x && x.chords) ? x.chords : []).map((c) => clip(c, 12).replace(/♯/g, '#').replace(/♭/g, 'b')).filter((c) => CHORD.test(c)).slice(0, 48),
+    };
+  }).filter((x) => x && (x.notes ? x.notes.length : x.chords.length)).slice(0, 24);
   const n = (v, lo, hi) => { const k = Math.round(Number(v)); return Number.isFinite(k) && k >= lo && k <= hi ? k : 0; };
   return {
     title: clip(s.title, 80), artist: clip(s.artist, 80), capo: n(s.capo, 0, 12), bpm: n(s.bpm, 30, 260), key: clip(s.key, 12),
+    tuning: TUNING_IDS.includes(s.tuning) ? s.tuning : 'standard',
     sections,
     unsure: (Array.isArray(s.unsure) ? s.unsure : []).map((c) => clip(c, 12)).filter((c) => CHORD.test(c)).slice(0, 24),
     notes: clip(s.notes, 300),
@@ -182,14 +211,14 @@ export default async function handler(req, res) {
     }
     if (bytes > MAX_BYTES) return send(res, 413, { error: 'bad', detail: 'too big' });
     const note = clip(b.note, 300);
-    parts.unshift({ text: `${RULES}\n\nThe material: ${files.length} file(s) — screenshots/photos/PDF of a chord sheet, and/or audio of the song, and/or still frames from a video of it (in time order). Read chord sheets exactly; for audio, listen for the chords.${note ? `\nThe player adds: "${note}"` : ''}` });
+    parts.unshift({ text: `${RULES}\n\nThe material: ${files.length} file(s) — screenshots/photos/PDF of a chord sheet, and/or audio of the song, and/or still frames from a video of it (in time order). Read chord sheets and tabs exactly (riffs/solos written as tab → "notes"); for audio, listen for the chords and the main riff.${note ? `\nThe player adds: "${note}"` : ''}` });
     body = { contents: [{ role: 'user', parts }], generationConfig: { responseMimeType: 'application/json', responseSchema: SCHEMA, temperature: 0.2 } };
   } else if (b.mode === 'web') {
     const title = clip(b.title, 100), artist = clip(b.artist, 100), link = clip(b.link, 300), note = clip(b.note, 300);
     if (!title) return send(res, 400, { error: 'bad', detail: 'no title' });
     if (link && !/^https?:\/\//i.test(link)) return send(res, 400, { error: 'bad', detail: 'link' });
     if (link && isYouTube(link)) parts.push({ file_data: { file_uri: link } });
-    parts.push({ text: `${RULES}\n\nFind the guitar chords of the song "${title}"${artist ? ` by ${artist}` : ''}. Use Google Search to look at chord sites and pick the version most guitarists play.${link ? (isYouTube(link) ? '\nThe attached YouTube video is this song (or a lesson for it) — use it too.' : `\nThis page is about the song: ${link}`) : ''}${note ? `\nThe player adds: "${note}"` : ''}\nRemember: JSON only, chords only, no lyrics.` });
+    parts.push({ text: `${RULES}\n\nFind the guitar chords of the song "${title}"${artist ? ` by ${artist}` : ''}, its tuning, and the tab of its main riff(s) and solo. Use Google Search to look at chord and tab sites and pick the version most guitarists play.${link ? (isYouTube(link) ? '\nThe attached YouTube video is this song (or a lesson for it) — use it too.' : `\nThis page is about the song: ${link}`) : ''}${note ? `\nThe player adds: "${note}"` : ''}\nRemember: JSON only, chords and tab only, no lyrics.` });
     const tools = [{ google_search: {} }];
     if (link && !isYouTube(link)) tools.push({ url_context: {} });
     body = { contents: [{ role: 'user', parts }], tools, generationConfig: { temperature: 0.2 } };

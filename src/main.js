@@ -34,6 +34,7 @@ import { createSensitivity } from './exercises/sensitivity.js';
 import { createLog } from './exercises/log.js';
 import { createSongs } from './exercises/songs.js';
 import { createSession } from './exercises/session.js';
+import { createRiff } from './exercises/riff.js';
 import * as halt from './exercises/halt.js';
 import { level as sensLevel } from './exercises/ear.js';
 
@@ -115,6 +116,7 @@ createSensitivity({ root: host, words: content.ex.sensitivity, audio, getStage: 
 createLog({ root: host, words: content.ex.log, audio, getStage: () => stage, director });
 createSongs({ root: host, words: content.ex.songs, audio, getStage: () => stage, director });
 createSession({ root: host, words: content.ex.session, audio, getStage: () => stage, director });
+createRiff({ root: host, words: content.ex.riff, audio, getStage: () => stage, director });
 halt.setWords(content.ex.halt);
 layout();
 director.measure();

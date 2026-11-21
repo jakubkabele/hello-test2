@@ -316,7 +316,39 @@ Built:
   search over limit → retry without search (noted in the draft), Google's own message shown, `?status&test` = one tiny
   request per model with its result.
 
+## 2026-11-21 — Gemini working; riffs as tab, tunings, Play the riff
+
+### Kuba
+- Gemini import works, but e.g. *Aerials* (System of a Down) came back with chords only — no riff or solo. Wants simple
+  riffs that go string by string. Riff practice at own pace (no tempo) for now: yes. Tunings: yes.
+
+### Gemini fixes before that (same day)
+- "Free limit reached" was really: `gemini-flash-latest` overloaded (503) and `gemini-2.5-flash(-lite)` retired (404,
+  "use gemini-3.8-flash / 3.5-flash-lite"). Now: 404/429/503 → next model, Google's suggested successor is tried
+  automatically, `?status&test` shows each model's answer. `flash-lite-latest` answered 200 on Kuba's key.
+
+### What we built
+- **Tab sections** in songs (Riff, Intro riff, Solo, Lick, Outro riff): single notes, string + fret, shown as a small tab
+  (lines named by the song's tuning). Entered by tapping a fret grid — each tap = next note, ⌫ undo; tap a note to move /
+  repeat / remove. Gemini now returns riffs/solos as tab (≤ 64 notes each, ≤ 6) and the tuning.
+- **Tunings**: 11 (Standard, half step down, D standard, Drop D, Drop C#, Drop C, C standard, Drop B, Open G, Open D, DADGAD).
+  Songs have one; chord checking, riffs and the tuner follow it. Tuner has a Tuning picker.
+- **EX-06 Play the riff** (from the song page): flat neck, ring on the next note, big fret number + string + note name,
+  moving tab with the current note lit. Listen first (the app plays it slowly), Tune first (tuner in that tuning, then back).
+  Result: time through the riff, wrong notes, slowest step, best — logged, in Progress and the coach export.
+
+### Tests (cloud)
+- Server: tab cleaning (string 6 → low, bad strings/frets dropped, empty solos dropped, unknown tuning → standard); 24 checks pass.
+- Browser: entered a Drop D riff by hand (7 notes incl. a repeated note) → saved → Play the riff with a synthetic recording
+  (+ one planted wrong note) through the fake mic: all 7 followed in order, the repeated note only on its new attack,
+  1 wrong counted, 5.2 s (recording: 0.75 s per note ✓), logged. Tune first → tuner in Drop D (D A D G B E). Gemini answer
+  with a riff + Drop C# → draft → saved with tab and tuning.
+
+### Open
+- Real guitar: fast riffs, hammer-ons, low drop-tuned notes through the phone mic. Notes above fret 12 sit off the flat-neck view.
+- Riffs aren't in Today's session yet.
+
 ## Next step
 1. Kuba tries songs (add a real one), today's session and the export on the phone → fixes.
-2. Kuba: open `/api/song/?status` on the preview, then add a real song both Gemini ways → fixes → go live.
+2. Kuba tries riffs (Aerials via Gemini, one typed in by hand) on the preview → fixes → go live.
 3. Sandbox (composer, synth, backing tracks).

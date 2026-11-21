@@ -106,6 +106,16 @@ export const content = {
     },
     // the red full-screen alert = the pause screen of every listening exercise
     halt: { code: 'SYS-HALT', jp: '休止', jpLong: '一時停止', paused: 'Paused', mic: 'Mic still listening — play to carry on' },
+    riff: {
+      no: 'EX-06', name: 'Play the riff', jp: '旋律',
+      start: 'Start', stop: 'Stop', again: 'Again', listen: 'Listen first', tuneFirst: 'Tune first',
+      noRiff: 'Open a song with a riff (Amp → Songs).', firstTime: 'First time — your baseline.',
+      howTo: 'play it at your own pace', notesWord: 'notes', capo: 'Capo', stringWord: 'string',
+      heard: 'Heard', lookingFor: 'looking for', wrongWord: 'wrong notes',
+      paused: 'Paused', pausedSub: 'Play when you’re back.', pausedText: 'Nothing heard for 20 s — the clock is stopped.', resume: 'Resume',
+      best: 'Best', newBest: 'New best — was', baseline: 'First time through — your baseline.', slowest: 'Slowest step', stoppedAt: 'Stopped at note',
+      denied: 'Microphone not available.', failed: 'Could not load the listening engine.',
+    },
     sensitivity: {
       no: 'SYS-01', name: 'Sensitivity', jp: '感度',
       low: 'Forgiving', high: 'Exact', recommended: 'Recommended', done: 'Done',
@@ -132,6 +142,11 @@ export const content = {
       bandPh: 'Band or artist', linkLabel: 'Link (optional)', linkPh: 'YouTube or a chord page', findIt: 'Find with Gemini', searching: 'Gemini is searching — usually 10–40 s',
       reviewTitle: 'From Gemini — check before saving', reviewText: 'Compare with the song, fix anything wrong, then Save. Dashed chips = chords the app can’t check yet; amber dot = Gemini wasn’t sure.',
       unsureLine: 'Not sure about:', sourcesLine: 'Used:', capo: 'Capo', noCapo: 'none',
+      riffWord: 'riff', riffsWord: 'riffs', playShort: 'Play', tabWord: 'tab', playRiff: 'Play the riff', tuning: 'Tuning',
+      tuningNote: 'How the strings are tuned for this song. The tab, the chord check and the tuner follow it.',
+      notesBtn: 'Notes', notesWord: 'notes', undo: 'Undo', done: 'Done', chordSections: 'Chords', tabSections: 'Riff · solo (tab)',
+      tabNote: 'Single notes, string by string — tap the fret on each string in playing order.',
+      notesHow: 'Tap where each note is played, in order. ▲▼ move up the neck. Each tap adds the next note.',
       errNoKey: 'Gemini isn’t set up yet — the key is missing in Vercel.', errKey: 'Google didn’t accept the Gemini key — check it in Vercel.',
       errLimit: 'Gemini’s free limit is reached for now — try again in a while.', errUnreadable: 'Gemini couldn’t find chords in that.',
       errBusy: 'Gemini is busy — try again in a minute.', errOffline: 'The Gemini helper isn’t reachable here (it only runs on the live site).',
@@ -162,7 +177,7 @@ export const content = {
     },
     tuner: {
       no: 'EX-01', name: 'Tuner', jp: '調弦',
-      start: 'Start listening', stop: 'Stop',
+      start: 'Start listening', stop: 'Stop', tuning: 'Tuning',
       idle: 'Tap start, then play one string.',
       listening: 'Play a string.',
       flat: 'Too low — tighten', sharp: 'Too high — loosen', ok: 'In tune',

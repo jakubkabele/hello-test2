@@ -57,6 +57,7 @@ const TRACKS = {
   'chord-changes': { group: (e) => (e.chords || []).slice().sort().join(' · '), label: (e) => (e.chords || []).join(' · '), value: (e) => e.score.changesPerMin, unit: '/min', up: true },
   'change-drill': { group: (e) => `${(e.chords || []).join(' → ')} (old drill)`, value: (e) => e.score.changesPerMin ?? e.score.perMin, unit: '/min', up: true },
   'find-note': { group: (e) => `Find the note · ${noteMode(e.score.mode)}`, value: (e) => e.score.avgSec, unit: ' s', up: false },
+  riff: { group: (e) => `${e.score.song} · ${e.score.riff}`, value: (e) => e.score.sec, unit: ' s', up: false },
   'keep-time': { group: (e) => `Keep time @ ${e.score.bpm}`, value: (e) => e.score.steadyPct, unit: '%', up: true },
 };
 

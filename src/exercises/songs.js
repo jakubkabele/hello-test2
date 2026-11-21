@@ -15,11 +15,38 @@ import { bus } from '../core/state.js';
 import { esc } from '../chapters/common.js';
 import { createPicker, miniDiagram } from './picker.js';
 import { loadEngine, readLog } from './ear.js';
-import { shapeFor, allShapes, MORE_GROUPS, teach, findBarre, parseName, NOTE_NAMES } from './chordbook.js';
+import { shapeFor, allShapes, MORE_GROUPS, teach, findBarre, parseName, NOTE_NAMES, TUNINGS, tuningOf, openMidi } from './chordbook.js';
 import * as gemini from './gemini.js';
 
 const KEY = 'practice.songs.v1';
 const SECTION_NAMES = ['Intro', 'Verse', 'Pre-chorus', 'Chorus', 'Bridge', 'Solo', 'Riff', 'Outro'];
+// sections written as tab (single notes: string + fret) instead of chords
+const TAB_NAMES = ['Riff', 'Intro riff', 'Solo', 'Lick', 'Outro riff'];
+export const isTab = (sec) => Array.isArray(sec && sec.notes);
+export const songTabs = (song) => (song.sections || []).map((s, i) => [s, i]).filter(([s]) => isTab(s) && s.notes.length);
+const TAB_LINES = ['e', 'B', 'G', 'D', 'A', 'E'];      // top line = high e, like printed tab
+
+// A small tab: blocks of up to 16 notes, 6 lines, the fret number on its string.
+// labels = the 6 line names top → bottom (high e … low E), e.g. for Drop D: e B G D A D
+export function tabLabels(tuning) {
+  const NOTE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const m = openMidi(tuning || 'standard');
+  return [5, 4, 3, 2, 1, 0].map((s) => (s === 5 ? NOTE[m[s] % 12].toLowerCase() : NOTE[m[s] % 12]));
+}
+export function tabHtml(notes, { si = -1, editable = false, cur = -1, labels = TAB_LINES } = {}) {
+  if (!notes.length) return '';
+  const blocks = [];
+  for (let i = 0; i < notes.length; i += 16) blocks.push(notes.slice(i, i + 16).map((n, k) => [n, i + k]));
+  return blocks.map((b) => `
+    <div class="tab">
+      <span class="tab-c tab-lab">${labels.map((l) => `<i>${l}</i>`).join('')}</span>
+      ${b.map(([n, ni]) => {
+        const cells = TAB_LINES.map((_, row) => `<i>${5 - row === n.s ? `<b>${n.f}</b>` : ''}</i>`).join('');
+        return editable ? `<button type="button" class="tab-c${ni === cur ? ' is-cur' : ''}" data-note="${si}:${ni}">${cells}</button>`
+          : `<span class="tab-c${ni === cur ? ' is-cur' : ''}" data-ni="${ni}">${cells}</span>`;
+      }).join('')}
+    </div>`).join('');
+}
 // Kuba's goal list (blueprint v2) — names only; the chords are yours to add
 const STARTER = [
   ['Strangers', 'Proderics'], ['Waiting', 'Leverfall'], ['Stolen Dance', 'Milky Chance'], ['After Dark', 'Mr.Kitty'],
@@ -107,9 +134,9 @@ export function createSongs({ root, words, audio, getStage, director }) {
     const songs = loadSongs();
     read.innerHTML = `<span class="lg-k">${esc(words.yours)}</span><b class="lg-big">${songs.length}</b><span class="lg-unit">${esc(words.songsWord)}</span>`;
     body.innerHTML = songs.length ? songs.map((x) => {
-      const n = songChords(x).length, st = songStats(x.id);
-      const sub = [x.artist || words.own, n ? `${n} ${words.chordsWord}` : words.noChords, st.best !== null ? `${words.best} ${st.best}/min` : ''].filter(Boolean).join(' · ');
-      return `<button type="button" class="sg-item${n ? '' : ' is-empty'}" data-id="${esc(x.id)}"><span><b>${esc(x.title)}</b><span>${esc(sub)}</span></span><i>▸</i></button>`;
+      const n = songChords(x).length, st = songStats(x.id), t = songTabs(x).length;
+      const sub = [x.artist || words.own, n ? `${n} ${words.chordsWord}` : t ? '' : words.noChords, t ? `${t} ${t === 1 ? words.riffWord : words.riffsWord}` : '', st.best !== null ? `${words.best} ${st.best}/min` : ''].filter(Boolean).join(' · ');
+      return `<button type="button" class="sg-item${n || t ? '' : ' is-empty'}" data-id="${esc(x.id)}"><span><b>${esc(x.title)}</b><span>${esc(sub)}</span></span><i>▸</i></button>`;
     }).join('') : `<p class="lg-empty">${esc(words.empty)}</p>`;
     row2.innerHTML = '';
     go.textContent = `+ ${words.add}`;
@@ -126,18 +153,23 @@ export function createSongs({ root, words, audio, getStage, director }) {
     const x = songById(current);
     if (!x) { setView('list'); return; }
     const seq = songChords(x), st = songStats(x.id);
-    read.innerHTML = `<button type="button" class="sg-back">‹ ${esc(words.songs)}</button><b class="sg-title">${esc(x.title)}</b><span class="lg-unit">${esc(x.artist || words.own)}${x.capo ? ` · ${esc(words.capo)} ${x.capo}` : ''}</span>`;
+    const tun = x.tuning && x.tuning !== 'standard' ? tuningOf(x.tuning).name : '';
+    read.innerHTML = `<button type="button" class="sg-back">‹ ${esc(words.songs)}</button><b class="sg-title">${esc(x.title)}</b><span class="lg-unit">${esc(x.artist || words.own)}${tun ? ` · ${esc(tun)}` : ''}${x.capo ? ` · ${esc(words.capo)} ${x.capo}` : ''}</span>`;
     const unknown = [...new Set(seq.filter((c) => !known(c)))];
-    body.innerHTML = (x.sections || []).filter((s) => s.chords.length).map((s) => `
-      <div class="sg-sec"><p class="sg-secname">${esc(s.name)}</p><div class="sg-chips">${chipsHtml(s.chords)}</div></div>`).join('') ||
+    const tabs = songTabs(x);
+    body.innerHTML = (x.sections || []).filter((s) => (isTab(s) ? s.notes.length : s.chords.length)).map((s) => (isTab(s)
+      ? `<div class="sg-sec"><p class="sg-secname">${esc(s.name)} · ${esc(words.tabWord)}</p>${tabHtml(s.notes, { labels: tabLabels(x.tuning) })}</div>`
+      : `<div class="sg-sec"><p class="sg-secname">${esc(s.name)}</p><div class="sg-chips">${chipsHtml(s.chords)}</div></div>`)).join('') ||
       `<p class="lg-empty">${esc(words.noChordsYet)}</p>`;
     if (unknown.length) body.innerHTML += `<p class="sg-note">${esc(words.unknownNote)} ${unknown.map(esc).join(', ')}</p>`;
     if (st.rounds) body.innerHTML += `<p class="sg-note">${esc(words.best)} ${st.best}/min · ${st.rounds} ${esc(st.rounds === 1 ? words.round : words.rounds)}</p>`;
     const hp = seq.length >= 2 ? hardestPair(E, x) : null;
     row2.innerHTML = `
       ${hp ? `<button type="button" class="pick sg-hard"><span>${esc(hp.measured ? words.hardest : words.hardestGuess)}</span><b>${esc(hp.pair.join(' ↔ '))}${hp.sec ? ` · ${hp.sec.toFixed(1)} s` : ''}</b></button>` : ''}
+      ${tabs.length && seq.length >= 2 ? `<button type="button" class="pick sg-riff"><span>${esc(tabs.length > 1 ? `${tabs.length} ${words.riffsWord}` : tabs[0][0].name)}</span><b>${esc(words.playShort)} ▸</b></button>` : ''}
       <button type="button" class="pick sg-edit"><span>${esc(words.song)}</span><b>${esc(words.edit)}</b></button>`;
-    go.textContent = seq.length >= 2 ? `${words.play} ▸` : `${words.addChords} ▸`;
+    row2.dataset.n = row2.querySelectorAll('button').length;
+    go.textContent = seq.length >= 2 ? `${words.play} ▸` : tabs.length ? `${words.playRiff} ▸` : `${words.addChords} ▸`;
     if (seq.length) showChord(seq[0]);
   }
   function renderEdit() {
@@ -155,11 +187,16 @@ export function createSongs({ root, words, audio, getStage, director }) {
     body.innerHTML = `${review}
       <label class="sg-field"><span>${esc(words.titleLabel)}</span><input type="text" class="sg-in-title" maxlength="60" value="${esc(d.title)}" placeholder="${esc(words.titlePh)}"></label>
       <label class="sg-field"><span>${esc(words.artistLabel)}</span><input type="text" class="sg-in-artist" maxlength="60" value="${esc(d.artist || '')}" placeholder="${esc(words.artistPh)}"></label>
-      <div class="sg-field"><span>${esc(words.capo)}</span><div class="step sg-capo"><button type="button" data-capo="-1" aria-label="Capo down">−</button><b>${d.capo ? d.capo : esc(words.noCapo)}</b><button type="button" data-capo="1" aria-label="Capo up">+</button></div></div>
+      <div class="sg-2">
+        <div class="sg-field"><span>${esc(words.tuning)}</span><button type="button" class="pick sg-tuning"><span>${esc(tuningOf(d.tuning).notes)}</span><b>${esc(tuningOf(d.tuning).name)}</b></button></div>
+        <div class="sg-field"><span>${esc(words.capo)}</span><div class="step sg-capo"><button type="button" data-capo="-1" aria-label="Capo down">−</button><b>${d.capo ? d.capo : esc(words.noCapo)}</b><button type="button" data-capo="1" aria-label="Capo up">+</button></div></div>
+      </div>
       ${d.sections.map((s, si) => `
-        <div class="sg-sec is-edit">
-          <div class="sg-sechead"><button type="button" class="sg-secname-btn" data-sec="${si}">${esc(s.name)} ▾</button><i></i><button type="button" class="sg-secdel" data-secdel="${si}" aria-label="Delete section">✕</button></div>
-          <div class="sg-chips">${chipsHtml(s.chords, true, si)}<button type="button" class="sg-chip sg-addchord" data-add="${si}">+ ${esc(words.chord)}</button></div>
+        <div class="sg-sec is-edit${isTab(s) ? ' is-tab' : ''}">
+          <div class="sg-sechead"><button type="button" class="sg-secname-btn" data-sec="${si}">${esc(s.name)}${isTab(s) ? ` · ${esc(words.tabWord)}` : ''} ▾</button><i></i><button type="button" class="sg-secdel" data-secdel="${si}" aria-label="Delete section">✕</button></div>
+          ${isTab(s)
+            ? `${tabHtml(s.notes, { si, editable: true, labels: tabLabels(d.tuning) })}<button type="button" class="sg-chip sg-addchord sg-addnotes" data-addnotes="${si}">+ ${esc(words.notesBtn)}</button>`
+            : `<div class="sg-chips">${chipsHtml(s.chords, true, si)}<button type="button" class="sg-chip sg-addchord" data-add="${si}">+ ${esc(words.chord)}</button></div>`}
         </div>`).join('')}
       <button type="button" class="sg-addsec">+ ${esc(words.section)}</button>
       ${d.id ? `<button type="button" class="sg-delete">${esc(words.deleteSong)}</button>` : ''}`;
@@ -188,6 +225,15 @@ export function createSongs({ root, words, audio, getStage, director }) {
     syncFields();
     const cp = e.target.closest('[data-capo]');
     if (cp) { draft.capo = Math.max(0, Math.min(12, (draft.capo || 0) + +cp.dataset.capo)); renderEdit(); return; }
+    if (e.target.closest('.sg-tuning')) {
+      const v = await picker.list({ title: words.tuning, value: draft.tuning || 'standard', tabs: [{ id: 't', label: words.tuning, note: words.tuningNote, rows: TUNINGS.map((t) => ({ value: t.id, label: t.name, sub: t.notes })) }] });
+      if (v) { draft.tuning = v; renderEdit(); }
+      return;
+    }
+    const an = e.target.closest('[data-addnotes]');
+    if (an) { await notesFor(+an.dataset.addnotes); renderEdit(); return; }
+    const nt = e.target.closest('[data-note]');
+    if (nt) { const [si, ni] = nt.dataset.note.split(':').map(Number); await noteMenu(si, ni); return; }
     const add = e.target.closest('[data-add]');
     if (add) { await addChord(+add.dataset.add); return; }
     const chip = e.target.closest('[data-chip]');
@@ -213,8 +259,9 @@ export function createSongs({ root, words, audio, getStage, director }) {
     if (e.target.closest('.sg-edit')) { startEdit(x); return; }
     if (e.target.closest('.sg-hard')) {
       const hp = hardestPair(E, x);
-      if (hp) practise({ pool: hp.pair, order: 'loop', song: null, capo: x.capo || 0 });
+      if (hp) practise({ pool: hp.pair, order: 'loop', song: null, capo: x.capo || 0, tuning: x.tuning || 'standard' });
     }
+    if (e.target.closest('.sg-riff')) playRiff(x);
   });
   go.addEventListener('click', async () => {
     audio.unlock();
@@ -237,14 +284,14 @@ export function createSongs({ root, words, audio, getStage, director }) {
     if (view === 'song') {
       const x = songById(current);
       if (!x) return;
-      if (songChords(x).length < 2) { startEdit(x); return; }
-      practise({ pool: songChords(x), order: 'loop', song: { id: x.id, title: x.title }, capo: x.capo || 0 });
+      if (songChords(x).length < 2) { if (songTabs(x).length) playRiff(x); else startEdit(x); return; }
+      practise({ pool: songChords(x), order: 'loop', song: { id: x.id, title: x.title }, capo: x.capo || 0, tuning: x.tuning || 'standard' });
       return;
     }
     // save
     syncFields();
     if (!draft.title.trim()) { el.querySelector('.sg-in-title').focus(); return; }
-    draft.sections = draft.sections.filter((s) => s.chords.length || draft.sections.length === 1);
+    draft.sections = draft.sections.filter((s) => (isTab(s) ? s.notes.length : s.chords.length) || draft.sections.length === 1);
     if (draft.from) draft.source = draft.from === 'web' ? 'gemini-web' : 'gemini-own';
     ['from', 'unsure', 'notes', 'sources', 'prepNotes'].forEach((k) => delete draft[k]);
     const list = loadSongs();
@@ -349,8 +396,8 @@ export function createSongs({ root, words, audio, getStage, director }) {
     const s = res.song;
     current = null;
     draft = {
-      id: null, title: s.title, artist: s.artist, capo: s.capo || 0,
-      sections: s.sections.map((x) => ({ name: x.name, chords: x.chords.slice() })),
+      id: null, title: s.title, artist: s.artist, capo: s.capo || 0, tuning: s.tuning || 'standard',
+      sections: s.sections.map((x) => (Array.isArray(x.notes) ? { name: x.name, notes: x.notes.map((n) => ({ s: n.s, f: n.f })) } : { name: x.name, chords: x.chords.slice() })),
       from, unsure: s.unsure || [], notes: s.notes || '', sources: res.sources || [], prepNotes: res.prepNotes || [],
     };
     audio.blip('on'); bus.emit('flash', 0.35);
@@ -410,9 +457,10 @@ export function createSongs({ root, words, audio, getStage, director }) {
     renderEdit();
   }
   async function renameSection(si) {
+    const names = isTab(draft.sections[si]) ? TAB_NAMES : SECTION_NAMES;
     const v = await picker.list({
       title: words.section, value: draft.sections[si].name,
-      tabs: [{ id: 's', label: words.section, rows: SECTION_NAMES.map((n) => ({ value: n, label: n })) }],
+      tabs: [{ id: 's', label: words.section, rows: names.map((n) => ({ value: n, label: n })) }],
     });
     if (v) { draft.sections[si].name = v; renderEdit(); }
   }
@@ -420,8 +468,19 @@ export function createSongs({ root, words, audio, getStage, director }) {
     const used = draft.sections.map((s) => s.name);
     const v = await picker.list({
       title: `+ ${words.section}`, value: '',
-      tabs: [{ id: 's', label: words.section, rows: SECTION_NAMES.map((n) => ({ value: n, label: n, sub: used.includes(n) ? words.again : '' })) }],
+      tabs: [
+        { id: 's', label: words.chordSections, rows: SECTION_NAMES.filter((n) => n !== 'Riff' && n !== 'Solo').map((n) => ({ value: n, label: n, sub: used.includes(n) ? words.again : words.chordsWord })) },
+        { id: 't', label: words.tabSections, note: words.tabNote, rows: TAB_NAMES.map((n) => ({ value: `tab:${n}`, label: n, sub: words.tabWord })) },
+      ],
     });
+    if (v && v.startsWith('tab:')) {
+      draft.sections.push({ name: v.slice(4), notes: [] });
+      renderEdit();
+      await notesFor(draft.sections.length - 1);
+      renderEdit();
+      body.scrollTop = body.scrollHeight;
+      return;
+    }
     if (v) {
       // a repeated section starts with the chords it had the first time
       const prev = [...draft.sections].reverse().find((s) => s.name === v);
@@ -429,6 +488,79 @@ export function createSongs({ root, words, audio, getStage, director }) {
       renderEdit();
       body.scrollTop = body.scrollHeight;
     }
+  }
+
+  // ── riffs: type notes in on a fret grid (each tap = the next note) ──
+  async function notesFor(si) {
+    const sec = draft.sections[si];
+    const open = openMidi(draft.tuning || 'standard');
+    let base = Math.max(1, Math.min(...sec.notes.filter((n) => n.f > 0).map((n) => n.f).concat([1])));
+    const NAMES = tabLabels(draft.tuning).slice().reverse();
+    const draw = () => `
+      <p class="pk-note">${esc(words.notesHow)}</p>
+      <div class="tg-tab">${tabHtml(sec.notes.slice(-16), { labels: tabLabels(draft.tuning) })}</div>
+      <div class="tg">
+        <div class="tg-grid">
+          <span></span>${NAMES.map((n) => `<b>${n}</b>`).join('')}
+          ${[0, base, base + 1, base + 2, base + 3, base + 4].map((r) => `<span class="tg-f">${r}</span>${NAMES.map((_, st) => `<button type="button" class="tg-c${r === 0 ? ' is-open' : ''}" data-nt="${st}:${r}" aria-label="${NAMES[st]} ${r}"></button>`).join('')}`).join('')}
+        </div>
+        <div class="tg-side">
+          <button type="button" class="tg-base" data-base="-1" ${base <= 1 ? 'disabled' : ''}>▲</button>
+          <span>${esc(words.fret)} ${base}</span>
+          <button type="button" class="tg-base" data-base="1" ${base >= 20 ? 'disabled' : ''}>▼</button>
+          <span class="tg-count">${sec.notes.length} ${esc(words.notesWord)}</span>
+        </div>
+      </div>
+      <div class="pk-multi"><button type="button" class="tg-undo" ${sec.notes.length ? '' : 'disabled'}>⌫ ${esc(words.undo)}</button><button type="button" class="tg-save">${esc(words.done)}</button></div>`;
+    const done = picker.sheet(`${sec.name} · ${words.tabWord}`, draw());
+    const onClick = (e) => {
+      const c = e.target.closest('[data-nt]');
+      if (c) {
+        const [st, f] = c.dataset.nt.split(':').map(Number);
+        if (sec.notes.length >= 128) return;
+        sec.notes.push({ s: st, f });
+        audio.unlock(); audio.pluck(open[st] + f + (draft.capo || 0), { vel: 0.7 });
+        const g = g3(); if (g) g.pluck(st, 0.8, f);
+        picker.body.innerHTML = draw();
+        return;
+      }
+      const b = e.target.closest('[data-base]');
+      if (b) { base = Math.max(1, Math.min(20, base + +b.dataset.base)); picker.body.innerHTML = draw(); return; }
+      if (e.target.closest('.tg-undo')) { sec.notes.pop(); picker.body.innerHTML = draw(); return; }
+      if (e.target.closest('.tg-save')) picker.done(true);
+    };
+    picker.body.addEventListener('click', onClick);
+    await done;
+    picker.body.removeEventListener('click', onClick);
+  }
+  async function noteMenu(si, ni) {
+    const notes = draft.sections[si].notes, n = notes[ni];
+    const open = openMidi(draft.tuning || 'standard');
+    audio.unlock(); audio.pluck(open[n.s] + n.f + (draft.capo || 0), { vel: 0.7 });
+    const v = await picker.list({ title: `${TAB_LINES[5 - n.s]} · ${n.f}`, value: '', tabs: [{ id: 'n', label: 'note', rows: [
+      ni > 0 ? { value: 'left', label: `← ${words.moveLeft}` } : null,
+      ni < notes.length - 1 ? { value: 'right', label: `${words.moveRight} →` } : null,
+      { value: 'dup', label: words.repeat },
+      { value: 'remove', label: words.remove },
+    ].filter(Boolean) }] });
+    if (v === 'remove') notes.splice(ni, 1);
+    if (v === 'dup') notes.splice(ni + 1, 0, { ...n });
+    if (v === 'left') [notes[ni - 1], notes[ni]] = [notes[ni], notes[ni - 1]];
+    if (v === 'right') [notes[ni + 1], notes[ni]] = [notes[ni], notes[ni + 1]];
+    renderEdit();
+  }
+  // open the riff player (pick one if the song has several)
+  async function playRiff(x) {
+    const tabs = songTabs(x);
+    let si = tabs.length ? tabs[0][1] : -1;
+    if (tabs.length > 1) {
+      const v = await picker.list({ title: words.playRiff, value: '', tabs: [{ id: 'r', label: words.riffsWord, rows: tabs.map(([s, i]) => ({ value: String(i), label: s.name, sub: `${s.notes.length} ${words.notesWord}` })) }] });
+      if (v === null) return;
+      si = +v;
+    }
+    if (si < 0) return;
+    bus.emit('riff:load', { song: x, si });
+    director.swap('riff');
   }
 
   // ── teach a chord: tap the fret on each string ──
