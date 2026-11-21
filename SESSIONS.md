@@ -306,6 +306,11 @@ Built:
   save; internet path with YouTube link → review with capo 2 → save. Capo hearing: G/C/D shapes with capo recognised.
 - Not done here: a real call to Gemini — Kuba checks `/api/song/?status` and tries a song on the phone.
 
+### 2026-11-21 — key check
+- Preview status said `key: missing`. Status page now also shows `env` and look-alike key *names* (never values) and
+  accepts `GOOGLE_API_KEY`. Kuba confirmed Preview is ticked in Vercel → new preview build so it picks the key up
+  (Vercel only gives env vars to builds made after they were saved).
+
 ## Next step
 1. Kuba tries songs (add a real one), today's session and the export on the phone → fixes.
 2. Kuba: open `/api/song/?status` on the preview, then add a real song both Gemini ways → fixes → go live.
