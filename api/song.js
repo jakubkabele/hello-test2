@@ -15,8 +15,11 @@
 // before it reaches the phone. Model: GEMINI_MODEL if set, else the current Flash model.
 
 const API = 'https://generativelanguage.googleapis.com/v1beta';
-// Tried in order. A model that is retired (404) or has no free quota left / none at all (429) → the next one.
-const MODELS = [...new Set([process.env.GEMINI_MODEL, 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite'].filter(Boolean))];
+// Tried in order. A model that is retired (404), out of quota (429) or overloaded (503) → the next one.
+// When Google says a model is retired it names the one to use instead ("use models/X") — that one is tried too.
+// (Kuba's key, 2026-11-21: 2.5-flash and 2.5-flash-lite retired → 3.8-flash / 3.5-flash-lite; flash-latest overloaded.)
+const MODELS = [...new Set([process.env.GEMINI_MODEL, 'gemini-flash-latest', 'gemini-3.8-flash', 'gemini-flash-lite-latest', 'gemini-3.5-flash-lite'].filter(Boolean))];
+const suggested = (data) => { const m = /use models\/([\w.-]+)/i.exec(JSON.stringify(data || {})); return m ? m[1] : null; };
 const MAX_BYTES = 4.3 * 1024 * 1024;           // Vercel accepts ~4.5 MB per request
 const MIMES = /^(image\/(jpeg|png|webp|heic|heif)|application\/pdf|audio\/(wav|x-wav|mpeg|mp3|mp4|aac|ogg|webm|flac)|video\/(mp4|webm|quicktime))$/;
 const ALLOWED_HOSTS = /(^|\.)vercel\.app$|^localhost$|^127\.0\.0\.1$/;
@@ -92,19 +95,25 @@ const isYouTube = (u) => /^https?:\/\/(www\.|m\.)?(youtube\.com\/(watch\?|shorts
 const msgOf = (data) => clip(data && data.error && data.error.message, 240);
 
 async function callGemini(key, body, models = MODELS) {
-  let first429 = null, last = null;
-  for (const model of models) {
+  let first429 = null, busy = null, last = null;
+  const list = models.slice();
+  for (let i = 0; i < list.length && i < 8; i++) {
+    const model = list[i];
     const r = await fetch(`${API}/models/${encodeURIComponent(model)}:generateContent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify(body),
     });
     const data = await r.json().catch(() => ({}));
-    if (r.status === 404) { last = { status: 404, data, model }; continue; }           // retired name → next
+    if (r.status === 404) {                                                        // retired name → its successor, then next
+      const s = suggested(data); if (s && !list.includes(s)) list.splice(i + 1, 0, s);
+      last = { status: 404, data, model }; continue;
+    }
     if (r.status === 429) { first429 = first429 || { status: 429, data, model }; continue; }   // no quota on this one → next
+    if (r.status === 503 || r.status === 500) { busy = busy || { status: 503, data, model }; continue; }   // overloaded → next
     return { status: r.status, data, model };
   }
-  return first429 || last || { status: 404, data: {}, model: models[models.length - 1] };
+  return first429 || busy || last || { status: 404, data: {}, model: list[list.length - 1] };
 }
 
 // ── the handler ──
@@ -122,15 +131,17 @@ export default async function handler(req, res) {
     const env = process.env.VERCEL_ENV || 'unknown';
     // ?status&test → one tiny request per model, to see which ones this key may use (and Google's exact words)
     if ('test' in req.query && key) {
-      const out = [];
-      for (const model of MODELS) {
+      const out = [], list = MODELS.slice();
+      for (let i = 0; i < list.length && i < 8; i++) {
+        const model = list[i];
         try {
           const r = await fetch(`${API}/models/${encodeURIComponent(model)}:generateContent`, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
             body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'Reply with the word OK.' }] }], generationConfig: { maxOutputTokens: 5 } }),
           });
           const d = await r.json().catch(() => ({}));
-          out.push({ model, code: r.status, ...(r.ok ? {} : { message: msgOf(d) }) });
+          if (r.status === 404) { const sg = suggested(d); if (sg && !list.includes(sg)) list.splice(i + 1, 0, sg); }
+          out.push({ model, code: r.status, ...(r.ok ? {} : { message: msgOf(d).slice(0, 90) }) });
         } catch { out.push({ model, code: 0, message: 'network' }); }
       }
       return send(res, 200, { key: 'found', env, models: out });
@@ -200,7 +211,7 @@ export default async function handler(req, res) {
   if (status === 429) return send(res, 200, { error: 'limit', detail: msgOf(data) });
   if (status === 400 && /API key/i.test(JSON.stringify(data))) return send(res, 200, { error: 'key' });
   if (status === 401 || status === 403) return send(res, 200, { error: 'key' });
-  if (status === 503) return send(res, 200, { error: 'busy' });
+  if (status === 503) return send(res, 200, { error: 'busy', detail: msgOf(data) });
   if (status !== 200) return send(res, 200, { error: 'failed', detail: msgOf(data) || `status ${status}` });
 
   const cand = data.candidates && data.candidates[0];
