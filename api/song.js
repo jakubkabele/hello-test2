@@ -15,7 +15,8 @@
 // before it reaches the phone. Model: GEMINI_MODEL if set, else the current Flash model.
 
 const API = 'https://generativelanguage.googleapis.com/v1beta';
-const MODELS = [process.env.GEMINI_MODEL, 'gemini-flash-latest', 'gemini-2.5-flash'].filter(Boolean);
+// Tried in order. A model that is retired (404) or has no free quota left / none at all (429) → the next one.
+const MODELS = [...new Set([process.env.GEMINI_MODEL, 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite'].filter(Boolean))];
 const MAX_BYTES = 4.3 * 1024 * 1024;           // Vercel accepts ~4.5 MB per request
 const MIMES = /^(image\/(jpeg|png|webp|heic|heif)|application\/pdf|audio\/(wav|x-wav|mpeg|mp3|mp4|aac|ogg|webm|flac)|video\/(mp4|webm|quicktime))$/;
 const ALLOWED_HOSTS = /(^|\.)vercel\.app$|^localhost$|^127\.0\.0\.1$/;
@@ -88,19 +89,22 @@ export function parseJson(text) {
 
 const isYouTube = (u) => /^https?:\/\/(www\.|m\.)?(youtube\.com\/(watch\?|shorts\/|live\/)|youtu\.be\/)/i.test(u);
 
-async function callGemini(key, body) {
-  let last = null;
-  for (const model of MODELS) {
+const msgOf = (data) => clip(data && data.error && data.error.message, 240);
+
+async function callGemini(key, body, models = MODELS) {
+  let first429 = null, last = null;
+  for (const model of models) {
     const r = await fetch(`${API}/models/${encodeURIComponent(model)}:generateContent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify(body),
     });
-    if (r.status === 404) { last = { status: 404, model }; continue; }       // model name retired → try the next
     const data = await r.json().catch(() => ({}));
+    if (r.status === 404) { last = { status: 404, data, model }; continue; }           // retired name → next
+    if (r.status === 429) { first429 = first429 || { status: 429, data, model }; continue; }   // no quota on this one → next
     return { status: r.status, data, model };
   }
-  return last || { status: 404, data: {}, model: MODELS[MODELS.length - 1] };
+  return first429 || last || { status: 404, data: {}, model: models[models.length - 1] };
 }
 
 // ── the handler ──
@@ -116,6 +120,21 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     if (!('status' in (req.query || {}))) return send(res, 404, { error: 'bad' });
     const env = process.env.VERCEL_ENV || 'unknown';
+    // ?status&test → one tiny request per model, to see which ones this key may use (and Google's exact words)
+    if ('test' in req.query && key) {
+      const out = [];
+      for (const model of MODELS) {
+        try {
+          const r = await fetch(`${API}/models/${encodeURIComponent(model)}:generateContent`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+            body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'Reply with the word OK.' }] }], generationConfig: { maxOutputTokens: 5 } }),
+          });
+          const d = await r.json().catch(() => ({}));
+          out.push({ model, code: r.status, ...(r.ok ? {} : { message: msgOf(d) }) });
+        } catch { out.push({ model, code: 0, message: 'network' }); }
+      }
+      return send(res, 200, { key: 'found', env, models: out });
+    }
     if (!key) return send(res, 200, { key: 'missing', works: null, env, lookingFor: 'GEMINI_API_KEY', similarNames: lookalikes() });
     // ask Google whether it accepts the key (lists models; costs nothing)
     try {
@@ -167,14 +186,22 @@ export default async function handler(req, res) {
     return send(res, 400, { error: 'bad' });
   }
 
-  let out;
-  try { out = await callGemini(key, body); } catch (e) { return send(res, 502, { error: 'failed', detail: 'network' }); }
+  let out, searchOff = false;
+  try {
+    out = await callGemini(key, body);
+    // Google Search has its own limit: if every model said "limit" with search on, try once without it
+    if (out.status === 429 && body.tools) {
+      const plain = { ...body }; delete plain.tools;
+      const again = await callGemini(key, plain);
+      if (again.status !== 429) { out = again; searchOff = true; }
+    }
+  } catch (e) { return send(res, 502, { error: 'failed', detail: 'network' }); }
   const { status, data, model } = out;
-  if (status === 429) return send(res, 200, { error: 'limit' });
+  if (status === 429) return send(res, 200, { error: 'limit', detail: msgOf(data) });
   if (status === 400 && /API key/i.test(JSON.stringify(data))) return send(res, 200, { error: 'key' });
   if (status === 401 || status === 403) return send(res, 200, { error: 'key' });
   if (status === 503) return send(res, 200, { error: 'busy' });
-  if (status !== 200) return send(res, 200, { error: 'failed', detail: clip(data && data.error && data.error.message, 200) || `status ${status}` });
+  if (status !== 200) return send(res, 200, { error: 'failed', detail: msgOf(data) || `status ${status}` });
 
   const cand = data.candidates && data.candidates[0];
   const text = cand && cand.content && Array.isArray(cand.content.parts) ? cand.content.parts.map((p) => p.text || '').join('') : '';
@@ -182,5 +209,6 @@ export default async function handler(req, res) {
   const sources = ((cand && cand.groundingMetadata && cand.groundingMetadata.groundingChunks) || [])
     .map((c) => c.web).filter(Boolean).slice(0, 6).map((w) => ({ title: clip(w.title, 80), url: clip(w.uri, 500) }));
   if (!song.sections.length) return send(res, 200, { error: 'unreadable', detail: song.notes, sources });
+  if (searchOff) song.notes = clip(`${song.notes} (Google Search was over its limit — this is from Gemini's own knowledge, check it.)`.trim(), 300);
   return send(res, 200, { song, sources, model });
 }

@@ -311,6 +311,11 @@ Built:
   accepts `GOOGLE_API_KEY`. Kuba confirmed Preview is ticked in Vercel → new preview build so it picks the key up
   (Vercel only gives env vars to builds made after they were saved).
 
+- Key found + accepted on preview. First real try said "free limit reached" without any use → likely a model with no
+  free quota (limit 0) or Google Search's own limit. Now: 429 → next model (flash-latest → 2.5-flash → flash-lite …),
+  search over limit → retry without search (noted in the draft), Google's own message shown, `?status&test` = one tiny
+  request per model with its result.
+
 ## Next step
 1. Kuba tries songs (add a real one), today's session and the export on the phone → fixes.
 2. Kuba: open `/api/song/?status` on the preview, then add a real song both Gemini ways → fixes → go live.
